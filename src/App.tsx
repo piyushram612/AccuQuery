@@ -1,39 +1,96 @@
-import React, { useState } from 'react';
-import { UserRole } from './types';
+import { useState, useCallback } from 'react';
+import { UserRole, CanvasWidget, CanvasLayout } from './types';
 
-// Import all your components, including the new Modal
+// --- Import all your components ---
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import AuditLog from './components/AuditLog';
 import Analytics from './components/Analytics';
-import Canvas from './components/Canvas';
-import ChatHistorySidebar from './components/ChatHistorySidebar';
-import Modal from './components/Modal';
+import PersistentCanvas from './components/PersistentCanvas';
+import ComparisonModal from './components/ComparisonModal';
+
+// --- Mock Functions (Replace with your actual logic) ---
+const processNLPQuery = async (prompt: string, role: UserRole) => {
+  console.log(`Processing query for ${role}: ${prompt}`);
+  if (prompt.toLowerCase().includes('metric')) {
+     return { type: 'metric', title: 'Total Orders', data: { value: '1,234' } };
+  }
+  return { type: 'text', title: `Response to: "${prompt}"`, data: { content: 'This is a detailed text response for your query.' } };
+};
+const calculateNextPosition = (widgets: CanvasWidget[]) => ({ x: 0, y: widgets.length * 10 });
+const getDefaultSize = (type: CanvasWidget['type']) => {
+  if (type === 'chart') return { width: 400, height: 300 };
+  return { width: 300, height: 150 };
+};
+// --- End Mock Functions ---
 
 function App() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('Recruiter');
   const [activeView, setActiveView] = useState<'chat' | 'audit' | 'analytics'>('chat');
-  const [sidebarOpen, setSidebarOpen] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  
+  // Canvas and Widget State
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
-  const [canvasData, setCanvasData] = useState<any>(null);
+  const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidget[]>([]);
+  const [canvasLayout, setCanvasLayout] = useState<CanvasLayout>('grid');
+
+  // Comparison Modal State
+  const [comparisonState, setComparisonState] = useState({
+    isOpen: false,
+    sourceWidgetId: null as string | null,
+  });
 
   const handlePromptSubmit = async (prompt: string) => {
-    const responseData = {
-      title: `Result for: "${prompt}"`,
-      content: "This is the generated content inside the modal canvas.",
+    const response = await processNLPQuery(prompt, selectedRole);
+    const newWidget: CanvasWidget = {
+      id: `widget_${Date.now()}`, type: response.type as CanvasWidget['type'],
+      title: response.title, data: response.data, query: prompt,
+      timestamp: new Date().toISOString(), position: calculateNextPosition(canvasWidgets),
+      size: getDefaultSize(response.type as CanvasWidget['type'])
     };
-    setCanvasData(responseData);
+    setCanvasWidgets(prev => [...prev, newWidget]);
+    
+    // Coordinate states: open canvas, close sidebar
     setIsCanvasOpen(true);
+    setSidebarOpen(false); 
   };
-
+  
   const handleCloseCanvas = () => {
     setIsCanvasOpen(false);
-    setCanvasData(null);
+    setSidebarOpen(true);
   };
 
+  const handleWidgetCompare = (widgetId: string) => {
+    setComparisonState({ isOpen: true, sourceWidgetId: widgetId });
+  };
+
+  const handleComparisonSubmit = async (comparisonPrompt: string) => {
+    if (!comparisonState.sourceWidgetId) return;
+    const sourceWidget = canvasWidgets.find(w => w.id === comparisonState.sourceWidgetId);
+    if (!sourceWidget) return;
+    
+    const targetResponse = await processNLPQuery(comparisonPrompt, selectedRole);
+
+    const comparisonWidget: CanvasWidget = {
+      id: `widget_${Date.now()}`, type: 'comparison',
+      title: `Comparison: ${sourceWidget.title} vs. ${targetResponse.title}`,
+      query: `Compare "${sourceWidget.query}" with "${comparisonPrompt}"`,
+      data: { source: sourceWidget, target: targetResponse },
+      timestamp: new Date().toISOString(), position: calculateNextPosition(canvasWidgets),
+      size: { width: 600, height: 250 }, relatedWidgets: [sourceWidget.id],
+    };
+    
+    setCanvasWidgets(prev => [...prev, comparisonWidget]);
+    setComparisonState({ isOpen: false, sourceWidgetId: null });
+  };
+
+  const handleWidgetRemove = useCallback((widgetId: string) => {
+    setCanvasWidgets(prev => prev.filter(w => w.id !== widgetId));
+  }, []);
+
   const renderDefaultView = () => {
-    switch (activeView) {
+     switch (activeView) {
       case 'chat':
         return <ChatInterface role={selectedRole} onPromptSubmit={handlePromptSubmit} />;
       case 'audit':
@@ -43,24 +100,57 @@ function App() {
       default:
         return <ChatInterface role={selectedRole} onPromptSubmit={handlePromptSubmit} />;
     }
-  };
+  }
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      <Header selectedRole={selectedRole} onRoleChange={setSelectedRole} sidebarOpen={sidebarOpen} />
-      <div className="flex-1 flex overflow-hidden">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} open={sidebarOpen} setOpen={setSidebarOpen} />
-        <main className={`flex-1 overflow-hidden transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}> 
-          {renderDefaultView()}
-        </main>
-      </div>
-      {/* Modal Canvas */}
-      <Modal isOpen={isCanvasOpen} onClose={handleCloseCanvas}>
-        <div className="flex-1 flex overflow-hidden h-full">
-          <ChatHistorySidebar role={selectedRole} onNewPrompt={handlePromptSubmit} />
-          <Canvas data={canvasData} onClose={handleCloseCanvas} />
-        </div>
-      </Modal>
+       <Header 
+         selectedRole={selectedRole} 
+         onRoleChange={setSelectedRole}
+         sidebarOpen={sidebarOpen}
+         onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+       />
+       <div className="flex-1 flex overflow-hidden">
+         <Sidebar 
+            activeView={activeView} 
+            onViewChange={setActiveView}
+            sidebarOpen={sidebarOpen}
+            onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+         />
+         <main className="flex-1 flex flex-col overflow-hidden">
+           <div className="flex-1 flex h-full">
+               <div className={`${isCanvasOpen ? 'w-1/2 lg:w-1/3' : 'w-full'} transition-all duration-300 ease-in-out h-full`}>
+                  {renderDefaultView()}
+               </div>
+               <div className={`${isCanvasOpen ? 'w-1/2 lg:w-2/3' : 'w-0'} transition-all duration-300 ease-in-out h-full flex flex-col`}>
+                  {isCanvasOpen && (
+                    <>
+                      <header className="p-4 bg-white border-b border-gray-300 flex justify-between items-center flex-shrink-0">
+                        <h2 className="text-2xl font-bold">Workspace</h2>
+                        <button
+                          onClick={handleCloseCanvas}
+                          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
+                        >
+                          Close
+                        </button>
+                      </header>
+                      <PersistentCanvas
+                        widgets={canvasWidgets}
+                        layout={canvasLayout}
+                        onWidgetRemove={handleWidgetRemove}
+                        onWidgetCompare={handleWidgetCompare}
+                      />
+                    </>
+                  )}
+               </div>
+           </div>
+         </main>
+       </div>
+      <ComparisonModal
+        isOpen={comparisonState.isOpen}
+        onClose={() => setComparisonState({ isOpen: false, sourceWidgetId: null })}
+        onSubmit={handleComparisonSubmit}
+      />
     </div>
   );
 }
