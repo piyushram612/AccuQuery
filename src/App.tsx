@@ -9,13 +9,12 @@ import AuditLog from './components/AuditLog';
 import Analytics from './components/Analytics';
 import Canvas from './components/Canvas';
 import ChatHistorySidebar from './components/ChatHistorySidebar';
-import Modal from './components/Modal'; // <-- Import the new Modal component
+import Modal from './components/Modal';
 
 function App() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('Recruiter');
   const [activeView, setActiveView] = useState<'chat' | 'audit' | 'analytics'>('chat');
-  
-  // We're back to using state to control the canvas visibility
+  const [sidebarOpen, setSidebarOpen] = useState(false);
   const [isCanvasOpen, setIsCanvasOpen] = useState(false);
   const [canvasData, setCanvasData] = useState<any>(null);
 
@@ -25,11 +24,11 @@ function App() {
       content: "This is the generated content inside the modal canvas.",
     };
     setCanvasData(responseData);
-    setIsCanvasOpen(true); // This now opens the modal
+    setIsCanvasOpen(true);
   };
 
   const handleCloseCanvas = () => {
-    setIsCanvasOpen(false); // This now closes the modal
+    setIsCanvasOpen(false);
     setCanvasData(null);
   };
 
@@ -48,21 +47,18 @@ function App() {
 
   return (
     <div className="min-h-screen bg-gray-50 flex flex-col">
-      {/* The main application layout is ALWAYS rendered */}
-      <Header selectedRole={selectedRole} onRoleChange={setSelectedRole} />
+      <Header selectedRole={selectedRole} onRoleChange={setSelectedRole} sidebarOpen={sidebarOpen} />
       <div className="flex-1 flex overflow-hidden">
-        <Sidebar activeView={activeView} onViewChange={setActiveView} />
-        <main className="flex-1 overflow-hidden">
+        <Sidebar activeView={activeView} onViewChange={setActiveView} open={sidebarOpen} setOpen={setSidebarOpen} />
+        <main className={`flex-1 overflow-hidden transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}> 
           {renderDefaultView()}
         </main>
       </div>
-
-      {/* The Modal is rendered here, on top of everything else, but is only visible when `isCanvasOpen` is true. */}
+      {/* Modal Canvas */}
       <Modal isOpen={isCanvasOpen} onClose={handleCloseCanvas}>
-        {/* This is the content that will appear inside the modal */}
         <div className="flex-1 flex overflow-hidden h-full">
-            <ChatHistorySidebar role={selectedRole} onNewPrompt={handlePromptSubmit} />
-            <Canvas data={canvasData} onClose={handleCloseCanvas} />
+          <ChatHistorySidebar role={selectedRole} onNewPrompt={handlePromptSubmit} />
+          <Canvas data={canvasData} onClose={handleCloseCanvas} />
         </div>
       </Modal>
     </div>

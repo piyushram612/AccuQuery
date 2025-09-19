@@ -5,9 +5,10 @@ import { Activity, Shield, Users } from 'lucide-react';
 interface HeaderProps {
   selectedRole: UserRole;
   onRoleChange: (role: UserRole) => void;
+  sidebarOpen: boolean;
 }
 
-const Header: React.FC<HeaderProps> = ({ selectedRole, onRoleChange }) => {
+const Header: React.FC<HeaderProps> = ({ selectedRole, onRoleChange, sidebarOpen }) => {
   const getRoleIcon = (role: UserRole) => {
     switch (role) {
       case 'Recruiter':
@@ -31,7 +32,7 @@ const Header: React.FC<HeaderProps> = ({ selectedRole, onRoleChange }) => {
   };
 
   return (
-    <header className="bg-white border-b border-gray-200 px-6 py-4">
+    <header className={`bg-white border-b border-gray-200 px-6 py-4 transition-all duration-300 ${sidebarOpen ? 'ml-64' : 'ml-16'}`}>
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">
           <div className="flex items-center space-x-2">
