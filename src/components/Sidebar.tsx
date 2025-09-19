@@ -22,8 +22,8 @@ const Sidebar: React.FC<SidebarProps> = ({ activeView, onViewChange, sidebarOpen
     { id: 'analytics', label: 'Analytics', icon: <FiBarChart2 size={24} /> },
   ];
 
-  return (
-    <aside className={`${sidebarWidth} bg-white flex-shrink-0 transition-all duration-300 ease-in-out border-r`}>
+   return (
+    <aside className={`${sidebarWidth} bg-white dark:bg-gray-900 flex-shrink-0 transition-all duration-300 ease-in-out border-r border-gray-200 dark:border-gray-800`}>
       <nav className="p-4">
         <ul>
           {navItems.map((item) => {

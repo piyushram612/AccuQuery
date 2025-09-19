@@ -1,3 +1,4 @@
+// src/App.tsx
 import { useState, useCallback } from 'react';
 import { UserRole, CanvasWidget, CanvasLayout } from './types';
 
@@ -6,7 +7,7 @@ import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import AuditLog from './components/AuditLog';
-import Analytics from './components/Analytics';
+import { Analytics } from './components/Analytics.mdx'; // Corrected import
 import PersistentCanvas from './components/PersistentCanvas';
 import ComparisonModal from './components/ComparisonModal';
 
@@ -123,7 +124,7 @@ function App() {
   }
 
   return (
-    <div className="min-h-screen bg-gray-50 flex flex-col">
+     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
        <Header 
          selectedRole={selectedRole} 
          onRoleChange={setSelectedRole}
@@ -145,11 +146,11 @@ function App() {
                <div className={`${isCanvasOpen ? 'w-1/2 lg:w-2/3' : 'w-0'} transition-all duration-300 ease-in-out h-full flex flex-col`}>
                   {isCanvasOpen && (
                     <>
-                      <header className="p-4 bg-white border-b border-gray-300 flex justify-between items-center flex-shrink-0">
-                        <h2 className="text-2xl font-bold">Workspace</h2>
+                      <header className="p-4 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
+                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workspace</h2>
                         <button
                           onClick={handleCloseCanvas}
-                          className="bg-gray-200 hover:bg-gray-300 text-gray-800 font-bold py-2 px-4 rounded"
+                          className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded"
                         >
                           Close
                         </button>

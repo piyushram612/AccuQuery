@@ -1,4 +1,15 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 
 interface ComparisonModalProps {
   isOpen: boolean;
@@ -9,37 +20,53 @@ interface ComparisonModalProps {
 const ComparisonModal: React.FC<ComparisonModalProps> = ({ isOpen, onClose, onSubmit }) => {
   const [prompt, setPrompt] = useState('');
 
-  if (!isOpen) return null;
+  // Reset prompt when modal opens/closes
+  useEffect(() => {
+    if (!isOpen) {
+      setPrompt('');
+    }
+  }, [isOpen]);
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (prompt.trim()) {
       onSubmit(prompt);
-      setPrompt('');
+      onClose(); // Close modal on submit
     }
   };
 
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex justify-center items-center">
-      <div className="bg-white p-6 rounded-lg shadow-xl w-full max-w-lg">
-        <h2 className="text-2xl font-bold mb-4">Create Comparison</h2>
-        <p className="mb-4 text-gray-600">Enter a new query to compare with the selected record.</p>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-[425px]">
         <form onSubmit={handleSubmit}>
-          <input
-            type="text"
-            value={prompt}
-            onChange={(e) => setPrompt(e.target.value)}
-            className="w-full p-2 border rounded mb-4"
-            placeholder="e.g., Show me the same data for last quarter"
-            autoFocus
-          />
-          <div className="flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="py-2 px-4 rounded bg-gray-200 hover:bg-gray-300">Cancel</button>
-            <button type="submit" className="py-2 px-4 rounded bg-blue-600 text-white hover:bg-blue-700">Compare</button>
+          <DialogHeader>
+            <DialogTitle>Create Comparison</DialogTitle>
+            <DialogDescription>
+              Enter a new query to compare with the selected record.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="grid gap-4 py-4">
+            <div className="grid grid-cols-4 items-center gap-4">
+              <Label htmlFor="prompt" className="text-right">
+                Query
+              </Label>
+              <Input
+                id="prompt"
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                className="col-span-3"
+                placeholder="e.g., Show data for last quarter"
+                autoFocus
+              />
+            </div>
           </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={onClose}>Cancel</Button>
+            <Button type="submit">Compare</Button>
+          </DialogFooter>
         </form>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 };
 

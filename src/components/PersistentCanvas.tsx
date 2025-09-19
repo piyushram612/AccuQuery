@@ -1,312 +1,213 @@
-import React, { useRef, useEffect, useState } from 'react';
-import { CanvasWidget, CanvasLayout } from '../types';
-import { FiCopy } from 'react-icons/fi';
+import React, { useRef, useEffect, useState, memo } from 'react';
+import { CanvasWidget } from '../types';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+import { X, Copy } from 'lucide-react';
 
-interface PersistentCanvasProps {
-  widgets: CanvasWidget[];
-  layout: CanvasLayout;
-  onWidgetRemove: (widgetId: string) => void;
-  onWidgetCompare: (widgetId: string) => void;
-}
-
-const Widget: React.FC<{
+interface WidgetProps {
   widget: CanvasWidget;
   onRemove: (id: string) => void;
   onCompare: (id: string) => void;
   index: number;
-  draggingBoxId: string | null;
-  setDraggingBoxId: (id: string | null) => void;
   updateTouched: (id: string) => void;
   zIndex: number;
-}> = ({
+}
+
+const Widget: React.FC<WidgetProps> = memo(({
   widget,
   onRemove,
   onCompare,
   index,
-  draggingBoxId,
-  setDraggingBoxId,
   updateTouched,
   zIndex,
 }) => {
   const [expanded, setExpanded] = useState(false);
-
-  // --- FIX: spread widgets apart by default (grid-like absolute positioning) ---
   const [position, setPosition] = useState<{ x: number; y: number }>(() => {
-    const saved = localStorage.getItem(`widget-pos-${widget.id}`);
-    if (saved) return JSON.parse(saved);
-    const colWidth = 380; // spacing horizontally
-    const rowHeight = 260; // spacing vertically
-    const startX = 40;
-    const startY = 40;
+    // Initial positioning logic
+    const colWidth = 400;
+    const rowHeight = 320; // Increased row height for better spacing
     return {
-      x: startX + (index % 3) * colWidth,
-      y: startY + Math.floor(index / 3) * rowHeight,
+      x: 20 + (index % 3) * colWidth,
+      y: 20 + Math.floor(index / 3) * rowHeight,
     };
   });
 
-  const dragging = useRef(false);
-  const offset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
-  const dragHandleRef = useRef<HTMLDivElement>(null);
+  const dragRef = useRef<HTMLDivElement>(null);
+  const offset = useRef({ x: 0, y: 0 });
 
-  useEffect(() => {
-    localStorage.setItem(`widget-pos-${widget.id}`, JSON.stringify(position));
-  }, [position, widget.id]);
-
-  const handleMouseDown = (e: React.MouseEvent) => {
-    if (e.target !== dragHandleRef.current) return;
-    dragging.current = true;
-    setDraggingBoxId(widget.id);
-    updateTouched(widget.id);
-    offset.current = {
-      x: e.clientX - position.x,
-      y: e.clientY - position.y,
-    };
-    document.addEventListener('mousemove', handleMouseMove);
-    document.addEventListener('mouseup', handleMouseUp);
+  const handleMouseDown = (e: React.MouseEvent<HTMLDivElement>) => {
+    if (dragRef.current && dragRef.current.contains(e.target as Node)) {
+        updateTouched(widget.id);
+        offset.current = {
+            x: e.clientX - position.x,
+            y: e.clientY - position.y,
+        };
+        document.addEventListener('mousemove', handleMouseMove);
+        document.addEventListener('mouseup', handleMouseUp, { once: true });
+    }
   };
 
   const handleMouseMove = (e: MouseEvent) => {
-    if (!dragging.current) return;
     setPosition({
       x: e.clientX - offset.current.x,
       y: e.clientY - offset.current.y,
     });
   };
 
-  const handleMouseUp = (e?: MouseEvent) => {
-    dragging.current = false;
-    setDraggingBoxId(null);
+  const handleMouseUp = () => {
     document.removeEventListener('mousemove', handleMouseMove);
-    document.removeEventListener('mouseup', handleMouseUp);
-
-    if (e && window.innerHeight - e.clientY < 100) {
-      // reset to first available grid slot
-      const columns = 3;
-      const cellWidth = 380;
-      const cellHeight = 260;
-      const startX = 40;
-      const startY = 40;
-      const usedPositions: { x: number; y: number }[] = [];
-      document.querySelectorAll('[data-widget-pos]')?.forEach((el) => {
-        const pos = el.getAttribute('data-widget-pos');
-        if (pos) {
-          const [x, y] = pos.split(',').map(Number);
-          usedPositions.push({ x, y });
-        }
-      });
-      let found = false;
-      for (let row = 0; row < 20 && !found; row++) {
-        for (let col = 0; col < columns; col++) {
-          const pos = {
-            x: startX + col * cellWidth,
-            y: startY + row * cellHeight,
-          };
-          if (!usedPositions.some((u) => u.x === pos.x && u.y === pos.y)) {
-            setPosition(pos);
-            found = true;
-            break;
-          }
-        }
-      }
-      if (!found) setPosition({ x: startX, y: startY });
-    }
   };
 
-  useEffect(() => {
-    return () => {
-      document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
-    };
-  }, []);
-
-  return (
-    <div
-      className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col break-words"
-      style={{
-        position: 'absolute',
-        left: position.x,
-        top: position.y,
-        zIndex,
-        width: 360,
-      }}
-      onMouseDown={handleMouseDown}
-      data-widget-pos={`${position.x},${position.y}`}
-    >
-      {/* Drag handle */}
-      <div
-        ref={dragHandleRef}
-        className="flex flex-col items-center cursor-grab mb-2 select-none"
-        style={{ userSelect: 'none' }}
-        title="Drag to move"
-        onClick={() => updateTouched(widget.id)}
-      >
-        <div className="w-8 h-1 bg-gray-400 mb-1 rounded" />
-        <div className="w-8 h-1 bg-gray-400 rounded" />
-      </div>
-
-      <div className="flex justify-between items-center mb-2">
-        <h3 className="font-bold text-lg">{widget.title}</h3>
-        <div className="flex items-center gap-2">
-          <button
-            onClick={() => onCompare(widget.id)}
-            className="text-blue-500 hover:text-blue-700"
-            title="Compare this widget"
-          >
-            <FiCopy size={18} />
-          </button>
-          <button
-            onClick={() => onRemove(widget.id)}
-            className="text-red-500 hover:text-red-700 font-bold"
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-
-      <div
-        className="flex-grow"
-        onClick={() => setExpanded(true)}
-        style={{ cursor: 'pointer' }}
-      >
-        {/* Table preview / expand logic */}
-        {Array.isArray(widget.data) &&
-        widget.data.length > 0 &&
-        typeof widget.data[0] === 'object' ? (
-          expanded ? (
-            <div className="overflow-auto max-h-96 max-w-full">
-              <table className="text-xs border">
-                <thead>
-                  <tr>
-                    {Object.keys(widget.data[0]).map((col) => (
-                      <th key={col} className="border px-2 py-1 bg-gray-200">
-                        {col}
-                      </th>
+  const renderWidgetContent = () => {
+    switch (widget.type) {
+      case 'table':
+        if (Array.isArray(widget.data) && widget.data.length > 0) {
+          return (
+            <div>
+              {/* This div handles both vertical and horizontal scrolling within a constrained height when expanded */}
+              <div className="overflow-auto" style={{ maxHeight: expanded ? '250px' : 'none' }}>
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      {Object.keys(widget.data[0]).map(col => <TableHead key={col}>{col}</TableHead>)}
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {(expanded ? widget.data : widget.data.slice(0, 3)).map((row: any, i: number) => (
+                      <TableRow key={i}>
+                        {Object.values(row).map((val, j) => <TableCell key={j}>{String(val)}</TableCell>)}
+                      </TableRow>
                     ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {widget.data.map((row: any, i: number) => (
-                    <tr key={i}>
-                      {Object.values(row).map((val, j) => (
-                        <td key={j} className="border px-2 py-1">
-                          {String(val)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <button
-                className="mt-2 px-3 py-1 bg-gray-200 rounded text-xs"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  setExpanded(false);
-                }}
-              >
-                Close
-              </button>
-            </div>
-          ) : (
-            <div className="overflow-auto max-w-full">
-              <table className="text-xs border">
-                <thead>
-                  <tr>
-                    {Object.keys(widget.data[0]).map((col) => (
-                      <th key={col} className="border px-2 py-1 bg-gray-200">
-                        {col}
-                      </th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {widget.data.slice(0, 3).map((row: any, i: number) => (
-                    <tr key={i}>
-                      {Object.values(row).map((val, j) => (
-                        <td key={j} className="border px-2 py-1">
-                          {String(val)}
-                        </td>
-                      ))}
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-              <div className="text-xs text-blue-500 mt-1">
-                Click to expand and view all rows
+                  </TableBody>
+                </Table>
               </div>
+              {widget.data.length > 3 && (
+                  <p 
+                    className="text-xs text-blue-500 dark:text-blue-400 mt-2 text-center cursor-pointer"
+                    onClick={(e) => {
+                      e.stopPropagation(); // Prevent card drag from firing on click
+                      setExpanded(!expanded);
+                    }}
+                  >
+                      Click to {expanded ? 'collapse' : `view all ${widget.data.length} rows`}
+                  </p>
+              )}
             </div>
-          )
-        ) : widget.type === 'comparison' ? (
+          );
+        }
+        return <p className="text-muted-foreground text-sm">No table data available.</p>;
+      
+      case 'comparison':
+        return (
           <div className="grid grid-cols-2 gap-4">
             <div>
-              <h4 className="font-semibold text-sm text-gray-600">
+              <h4 className="font-semibold text-sm text-card-foreground/80">
                 {widget.data.source.title}
               </h4>
-              <p className="text-xs text-gray-500">
-                {widget.data.source.data.content}
+              <p className="text-xs text-muted-foreground mt-1">
+                {widget.data.source.data?.content || JSON.stringify(widget.data.source.data)}
               </p>
             </div>
-            <div className="border-l pl-4">
-              <h4 className="font-semibold text-sm text-gray-600">
+            <div className="border-l border-border pl-4">
+              <h4 className="font-semibold text-sm text-card-foreground/80">
                 {widget.data.target.title}
               </h4>
-              <p className="text-xs text-gray-500">
-                {widget.data.target.data.content}
+              <p className="text-xs text-muted-foreground mt-1">
+                {widget.data.target.data?.content || JSON.stringify(widget.data.target.data)}
               </p>
             </div>
           </div>
-        ) : widget.type === 'text' ? (
-          <p>{widget.data.content}</p>
-        ) : widget.type === 'metric' ? (
-          <p className="text-4xl font-bold">{widget.data.value}</p>
-        ) : null}
+        );
 
-        <p className="text-xs text-gray-400 mt-4">Query: "{widget.query}"</p>
+      case 'text':
+        return <p>{widget.data.content}</p>;
+      
+      case 'metric':
+        return <p className="text-4xl font-bold">{widget.data.value}</p>;
+
+      default:
+        return null;
+    }
+  }
+
+  return (
+    <Card
+      className="absolute flex flex-col break-words"
+      style={{
+        left: position.x,
+        top: position.y,
+        zIndex,
+        width: 380,
+        maxHeight: '90vh' // Prevent card from being too tall
+      }}
+      onMouseDown={handleMouseDown}
+    >
+      <div ref={dragRef} className="flex flex-col items-center cursor-grab py-2 select-none" title="Drag to move">
+        <div className="w-8 h-1 bg-gray-300 dark:bg-gray-700 mb-1 rounded-full" />
+        <div className="w-6 h-1 bg-gray-300 dark:bg-gray-700 rounded-full" />
       </div>
-    </div>
+
+      <CardHeader className="flex flex-row items-start justify-between pb-2 pt-0">
+        <CardTitle className="text-base font-semibold">{widget.title}</CardTitle>
+        <div className="flex items-center gap-1">
+          <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => onCompare(widget.id)} title="Compare">
+            <Copy size={14} />
+          </Button>
+          <Button variant="ghost" size="icon" className="h-7 w-7 text-red-500 hover:text-red-500" onClick={() => onRemove(widget.id)} title="Remove">
+            <X size={16} />
+          </Button>
+        </div>
+      </CardHeader>
+
+      <CardContent className="flex-grow py-2 text-sm overflow-hidden">
+        {renderWidgetContent()}
+      </CardContent>
+
+      <CardFooter className="py-2 mt-auto">
+         <p className="text-xs text-gray-500 dark:text-gray-400">Query: "{widget.query}"</p>
+      </CardFooter>
+    </Card>
   );
-};
+});
+
+interface PersistentCanvasProps {
+    widgets: CanvasWidget[];
+    onWidgetRemove: (widgetId: string) => void;
+    onWidgetCompare: (widgetId: string) => void;
+}
 
 const PersistentCanvas: React.FC<PersistentCanvasProps> = ({
   widgets,
-  layout,
   onWidgetRemove,
   onWidgetCompare,
 }) => {
-  const [draggingBoxId, setDraggingBoxId] = useState<string | null>(null);
-  const [touchedMap, setTouchedMap] = useState<{ [id: string]: number }>(() => {
-    const map: { [id: string]: number } = {};
-    widgets.forEach((w) => {
-      map[w.id] = Date.now();
-    });
-    return map;
-  });
+  const [touchedMap, setTouchedMap] = useState<{ [id: string]: number }>({});
+
+  useEffect(() => {
+    setTouchedMap(prev => {
+        const newMap = {...prev};
+        widgets.forEach(w => {
+            if(!newMap[w.id]) {
+                newMap[w.id] = Date.now();
+            }
+        });
+        return newMap;
+    })
+  }, [widgets]);
 
   const updateTouched = (id: string) => {
-    setTouchedMap((prev) => ({ ...prev, [id]: Date.now() }));
+    setTouchedMap(prev => ({ ...prev, [id]: Date.now() }));
   };
 
-  const sortedWidgets = [...widgets].sort((a, b) => {
-    const ta = touchedMap[a.id] || 0;
-    const tb = touchedMap[b.id] || 0;
-    return tb - ta;
-  });
+  const sortedWidgets = [...widgets].sort((a, b) => (touchedMap[b.id] || 0) - (touchedMap[a.id] || 0));
 
   return (
-    <div className="h-full w-full relative bg-gray-100 flex-grow">
-      {draggingBoxId && (
-        <div className="fixed bottom-0 left-0 w-full h-16 bg-gray-300 flex items-center justify-center z-50 opacity-80 pointer-events-none">
-          <span className="text-gray-700 text-sm">
-            Drop here to reset position
-          </span>
-        </div>
-      )}
-
+    <div className="h-full w-full relative bg-gray-100 dark:bg-gray-900/80 flex-grow overflow-auto">
       {widgets.length === 0 ? (
-        <div className="text-center text-gray-500 pt-16">
+        <div className="text-center text-gray-500 dark:text-gray-400 pt-16">
           <p className="text-lg">Your workspace is empty.</p>
-          <p className="text-sm text-gray-400">
-            Ask a question to add a widget.
-          </p>
+          <p className="text-sm">Ask a question to add a widget.</p>
         </div>
       ) : (
         <div style={{ position: 'relative', width: '100%', height: '100%' }}>
@@ -317,10 +218,8 @@ const PersistentCanvas: React.FC<PersistentCanvasProps> = ({
               onRemove={onWidgetRemove}
               onCompare={onWidgetCompare}
               index={idx}
-              draggingBoxId={draggingBoxId}
-              setDraggingBoxId={setDraggingBoxId}
               updateTouched={updateTouched}
-              zIndex={100 + sortedWidgets.length - idx}
+              zIndex={10 + sortedWidgets.length - idx}
             />
           ))}
         </div>
