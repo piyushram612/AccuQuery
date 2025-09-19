@@ -1,11 +1,9 @@
-// src/components/ChatInterface.tsx
-
 import React, { useState, useRef } from 'react';
 
 const N8N_WEBHOOK_URL = "https://accuquery.app.n8n.cloud/webhook/265defbb-0f2c-43ee-bf73-db1cddeec134";
 
 function isTabular(data: unknown): data is Array<Record<string, unknown>> {
-  return Array.isArray(data) && data.length > 0 && typeof data[0] === 'object';
+  return Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && Object.keys(data[0]).length > 1;
 }
 
 const initialMessages = [
@@ -25,17 +23,43 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReply }) => {
 
   const handleSend = async () => {
     if (!input.trim()) return;
-    setMessages(prev => [...prev, { role: 'user', content: input }]);
+    const userMessage = { role: 'user', content: input };
+    setMessages(prev => [...prev, userMessage]);
     setLoading(true);
     setError("");
+    
     try {
       const params = new URLSearchParams({ question: input });
       const res = await fetch(`${N8N_WEBHOOK_URL}?${params.toString()}`);
       if (!res.ok) throw new Error(`HTTP error: ${res.status}`);
       let data = await res.json();
+      
+      // Ensure data is always an array for consistency
       if (!Array.isArray(data)) data = [data];
-      setMessages(prev => [...prev, { role: 'assistant', content: data }]);
+
+      // --- THIS IS THE FIX ---
+      // 1. Always send the full, raw data to App.tsx for the workspace
       if (onReply) onReply(data, input);
+      
+      // 2. Determine what content to actually display in THIS chat window
+      let chatDisplayContent: string;
+      if (isTabular(data)) {
+        // If the data is a table, just show a confirmation message.
+        chatDisplayContent = "I've generated a table with your data and added it to the workspace.";
+      } else {
+        // Otherwise, it's a simple text response. Extract it or stringify as a fallback.
+        const firstItem = data[0];
+        if (typeof firstItem === 'object' && firstItem !== null) {
+            const potentialText = (firstItem as any).response || (firstItem as any).result || (firstItem as any).answer;
+            chatDisplayContent = typeof potentialText === 'string' ? potentialText : JSON.stringify(firstItem);
+        } else {
+            chatDisplayContent = String(firstItem);
+        }
+      }
+      
+      // 3. Add the clean message to the chat history
+      setMessages(prev => [...prev, { role: 'assistant', content: chatDisplayContent }]);
+
     } catch (err) {
       let msg = "An error occurred.";
       if (err instanceof Error) msg = `An error occurred: ${err.message}`;
@@ -56,28 +80,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReply }) => {
         {messages.map((msg, idx) => (
           <div key={idx} className={`mb-3 flex ${msg.role === 'user' ? 'justify-end' : 'justify-start'}`}>
             <div className={`max-w-xl p-3 rounded-lg ${msg.role === 'user' ? 'bg-blue-100 text-right' : 'bg-gray-100 text-left'}`}>
-              {msg.role === 'assistant' && isTabular(msg.content) ? (
-                <table className="min-w-full text-xs border">
-                  <thead>
-                    <tr>
-                      {Object.keys((msg.content as Array<Record<string, unknown>>)[0]).map((col) => (
-                        <th key={col} className="border px-2 py-1 bg-gray-200">{col}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {(msg.content as Array<Record<string, unknown>>).map((row, i) => (
-                      <tr key={i}>
-                        {Object.values(row).map((val, j) => (
-                          <td key={j} className="border px-2 py-1">{String(val)}</td>
-                        ))}
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              ) : (
+                {/* This rendering logic now only receives simple strings for tables */}
                 <span>{typeof msg.content === 'string' ? msg.content : JSON.stringify(msg.content)}</span>
-              )}
             </div>
           </div>
         ))}
@@ -112,4 +116,3 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReply }) => {
 };
 
 export default ChatInterface;
-
