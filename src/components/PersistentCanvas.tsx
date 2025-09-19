@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useRef, useEffect, useState } from 'react';
 import { CanvasWidget, CanvasLayout } from '../types';
 import { FiCopy } from 'react-icons/fi';
 
@@ -13,9 +13,111 @@ const Widget: React.FC<{
   widget: CanvasWidget;
   onRemove: (id: string) => void;
   onCompare: (id: string) => void;
-}> = ({ widget, onRemove, onCompare }) => {
+  index: number;
+  draggingBoxId: string | null;
+  setDraggingBoxId: (id: string | null) => void;
+  updateTouched: (id: string) => void;
+  zIndex: number;
+}> = ({ widget, onRemove, onCompare, index, draggingBoxId, setDraggingBoxId, updateTouched, zIndex }) => {
+  const [expanded, setExpanded] = useState(false);
+  const [position, setPosition] = useState<{ x: number; y: number }>(() => {
+    const saved = localStorage.getItem(`widget-pos-${widget.id}`);
+    if (saved) return JSON.parse(saved);
+    // Default grid/column positions
+    return { x: 40 + (index % 3) * 340, y: 40 + Math.floor(index / 3) * 220 };
+  });
+  const dragging = useRef(false);
+  const offset = useRef<{ x: number; y: number }>({ x: 0, y: 0 });
+  const dragHandleRef = useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    localStorage.setItem(`widget-pos-${widget.id}`, JSON.stringify(position));
+  }, [position, widget.id]);
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (e.target !== dragHandleRef.current) return;
+    dragging.current = true;
+    setDraggingBoxId(widget.id);
+    updateTouched(widget.id);
+    offset.current = {
+      x: e.clientX - position.x,
+      y: e.clientY - position.y,
+    };
+    document.addEventListener('mousemove', handleMouseMove);
+    document.addEventListener('mouseup', handleMouseUp);
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!dragging.current) return;
+    setPosition({
+      x: e.clientX - offset.current.x,
+      y: e.clientY - offset.current.y,
+    });
+  };
+
+  const handleMouseUp = (e?: MouseEvent) => {
+    dragging.current = false;
+    setDraggingBoxId(null);
+    document.removeEventListener('mousemove', handleMouseMove);
+    document.removeEventListener('mouseup', handleMouseUp);
+    // If dropped in bottom zone, reset position to topmost available grid spot
+    if (e && window.innerHeight - e.clientY < 100) {
+      // Find all used grid positions
+      const columns = 3;
+      const cellWidth = 340;
+      const cellHeight = 220;
+      const startX = 40;
+      const startY = 40;
+      const usedPositions: { x: number; y: number }[] = [];
+      document.querySelectorAll('[data-widget-pos]')?.forEach((el) => {
+        const pos = el.getAttribute('data-widget-pos');
+        if (pos) {
+          const [x, y] = pos.split(',').map(Number);
+          usedPositions.push({ x, y });
+        }
+      });
+      let found = false;
+      for (let row = 0; row < 20 && !found; row++) {
+        for (let col = 0; col < columns; col++) {
+          const pos = { x: startX + col * cellWidth, y: startY + row * cellHeight };
+          if (!usedPositions.some(u => u.x === pos.x && u.y === pos.y)) {
+            setPosition(pos);
+            found = true;
+            break;
+          }
+        }
+      }
+      if (!found) setPosition({ x: startX, y: startY });
+    }
+  };
+
+  useEffect(() => {
+    return () => {
+      document.removeEventListener('mousemove', handleMouseMove);
+      document.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, []);
+
+  // Only apply margin if the box is in its default position (not dragged)
+  const isDefaultPosition = position.x === 40 + (index % 3) * 340 && position.y === 40 + Math.floor(index / 3) * 220;
   return (
-    <div className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col">
+    <div
+      className="bg-white p-4 rounded-lg shadow-md border border-gray-200 flex flex-col break-words"
+  style={{ position: 'absolute', left: position.x, top: position.y, zIndex, minWidth: 300, maxWidth: 400, width: '100%' }}
+      onMouseDown={handleMouseDown}
+    >
+      {/* Drag handle */}
+      <div
+        ref={dragHandleRef}
+        className="flex flex-col items-center cursor-grab mb-2 select-none"
+        style={{ userSelect: 'none' }}
+        title="Drag to move"
+        data-widget-pos={`${position.x},${position.y}`}
+        onClick={() => updateTouched(widget.id)}
+      >
+        <div className="w-8 h-1 bg-gray-400 mb-1 rounded" />
+        <div className="w-8 h-1 bg-gray-400 rounded" />
+      </div>
       <div className="flex justify-between items-center mb-2">
         <h3 className="font-bold text-lg">{widget.title}</h3>
         <div className="flex items-center gap-2">
@@ -29,8 +131,55 @@ const Widget: React.FC<{
            <button onClick={() => onRemove(widget.id)} className="text-red-500 hover:text-red-700 font-bold">✕</button>
         </div>
       </div>
-      <div className="flex-grow">
-        {widget.type === 'comparison' ? (
+      <div className="flex-grow" onClick={() => setExpanded(true)} style={{ cursor: 'pointer' }}>
+        {/* Tabular preview/expand logic */}
+        {Array.isArray(widget.data) && widget.data.length > 0 && typeof widget.data[0] === 'object' ? (
+          expanded ? (
+            <div className="overflow-auto max-h-96">
+              <table className="min-w-full text-xs border">
+                <thead>
+                  <tr>
+                    {Object.keys(widget.data[0]).map((col) => (
+                      <th key={col} className="border px-2 py-1 bg-gray-200">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {widget.data.map((row: any, i: number) => (
+                    <tr key={i}>
+                      {Object.values(row).map((val, j) => (
+                        <td key={j} className="border px-2 py-1">{String(val)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <button className="mt-2 px-3 py-1 bg-gray-200 rounded text-xs" onClick={e => { e.stopPropagation(); setExpanded(false); }}>Close</button>
+            </div>
+          ) : (
+            <div>
+              <table className="min-w-full text-xs border">
+                <thead>
+                  <tr>
+                    {Object.keys(widget.data[0]).map((col) => (
+                      <th key={col} className="border px-2 py-1 bg-gray-200">{col}</th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {widget.data.slice(0, 3).map((row: any, i: number) => (
+                    <tr key={i}>
+                      {Object.values(row).map((val, j) => (
+                        <td key={j} className="border px-2 py-1">{String(val)}</td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <div className="text-xs text-blue-500 mt-1">Click to expand and view all rows</div>
+            </div>
+          )
+        ) : widget.type === 'comparison' ? (
           <div className="grid grid-cols-2 gap-4">
             <div>
               <h4 className="font-semibold text-sm text-gray-600">{widget.data.source.title}</h4>
@@ -58,27 +207,58 @@ const PersistentCanvas: React.FC<PersistentCanvasProps> = ({
   onWidgetRemove,
   onWidgetCompare,
 }) => {
+  const [draggingBoxId, setDraggingBoxId] = useState<string | null>(null);
+  const [touchedMap, setTouchedMap] = useState<{ [id: string]: number }>(() => {
+    // Initialize with creation time (Date.now()) for each widget
+    const map: { [id: string]: number } = {};
+    widgets.forEach(w => {
+      map[w.id] = Date.now();
+    });
+    return map;
+  });
+
+  // Update touched time when a widget is interacted with
+  const updateTouched = (id: string) => {
+    setTouchedMap(prev => ({ ...prev, [id]: Date.now() }));
+  };
+
+  // Sort widgets by lastTouched (most recent first)
+  const sortedWidgets = [...widgets].sort((a, b) => {
+    const ta = touchedMap[a.id] || 0;
+    const tb = touchedMap[b.id] || 0;
+    return tb - ta;
+  });
+
   return (
-    <div className="h-full flex flex-col bg-gray-100 flex-grow">
-      <div className="flex-grow p-4 overflow-y-auto">
-        {widgets.length === 0 ? (
-          <div className="text-center text-gray-500 pt-16">
-            <p className="text-lg">Your workspace is empty.</p>
-            <p className="text-sm text-gray-400">Ask a question to add a widget.</p>
-          </div>
-        ) : (
-          <div className={`gap-4 ${layout === 'grid' ? 'grid grid-cols-1 lg:grid-cols-2 xl:grid-cols-3' : 'flex flex-col space-y-4'}`}>
-            {widgets.map(widget => (
-              <Widget
-                key={widget.id}
-                widget={widget}
-                onRemove={onWidgetRemove}
-                onCompare={onWidgetCompare}
-              />
-            ))}
-          </div>
-        )}
-      </div>
+    <div className="h-full w-full relative bg-gray-100 flex-grow">
+      {/* Bottom drop zone, only visible when dragging */}
+      {draggingBoxId && (
+        <div className="fixed bottom-0 left-0 w-full h-16 bg-gray-300 flex items-center justify-center z-50 opacity-80 pointer-events-none">
+          <span className="text-gray-700 text-sm">Drop here to reset position</span>
+        </div>
+      )}
+      {widgets.length === 0 ? (
+        <div className="text-center text-gray-500 pt-16">
+          <p className="text-lg">Your workspace is empty.</p>
+          <p className="text-sm text-gray-400">Ask a question to add a widget.</p>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 w-full" style={{ alignItems: 'start' }}>
+          {sortedWidgets.map((widget, idx) => (
+            <Widget
+              key={widget.id}
+              widget={widget}
+              onRemove={onWidgetRemove}
+              onCompare={onWidgetCompare}
+              index={idx}
+              draggingBoxId={draggingBoxId}
+              setDraggingBoxId={setDraggingBoxId}
+              updateTouched={updateTouched}
+              zIndex={100 + sortedWidgets.length - idx}
+            />
+          ))}
+        </div>
+      )}
     </div>
   );
 };

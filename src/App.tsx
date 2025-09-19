@@ -89,16 +89,36 @@ function App() {
     setCanvasWidgets(prev => prev.filter(w => w.id !== widgetId));
   }, []);
 
+  const handleChatReply = (reply: unknown, prompt: string) => {
+    // Determine widget type
+    let type: CanvasWidget['type'] = 'text';
+    if (Array.isArray(reply) && reply.length > 0 && typeof reply[0] === 'object') type = 'table';
+    // Create widget
+    const newWidget: CanvasWidget = {
+      id: `widget_${Date.now()}`,
+      type,
+      title: `Response to: "${prompt}"`,
+      data: reply,
+      query: prompt,
+      timestamp: new Date().toISOString(),
+      position: calculateNextPosition(canvasWidgets),
+      size: getDefaultSize(type)
+    };
+    setCanvasWidgets(prev => [...prev, newWidget]);
+    setIsCanvasOpen(true);
+    setSidebarOpen(false);
+  };
+
   const renderDefaultView = () => {
      switch (activeView) {
       case 'chat':
-        return <ChatInterface role={selectedRole} onPromptSubmit={handlePromptSubmit} />;
+        return <ChatInterface onReply={handleChatReply} />;
       case 'audit':
         return <AuditLog />;
       case 'analytics':
         return <Analytics />;
       default:
-        return <ChatInterface role={selectedRole} onPromptSubmit={handlePromptSubmit} />;
+        return <ChatInterface onReply={handleChatReply} />;
     }
   }
 
