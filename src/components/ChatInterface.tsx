@@ -115,7 +115,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReply }) => {
       <p className="text-gray-500 dark:text-gray-400 mb-4">Your conversational gateway to background check data.</p>
 
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto mb-4 pr-2">
-        {messages.map((msg, idx) => (
+        {(messages || []).map((msg, idx) => (
           <MessageBubble key={idx} message={msg} />
         ))}
         {loading && (
