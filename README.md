@@ -179,12 +179,12 @@ vercel deploy
 
 
 ## 👥 Team Contributions
-- **Chetan** – Supabase integration  
-- **Pranav** – Workflow automation with n8n  
-- **Priyanshu** – Knowledge base creation & integration  
-- **Tanish** – Frontend & Canvas UI design  
-- **Santosh** – Data modeling & report generation  
-- **Piyush** – Project management & presentation design
+- [**Chetan**](https://github.com/Chetankamineni) – Supabase integration  
+- **[Pranav](https://github.com/pranavsy)** – Workflow automation with n8n  
+- **[Priyanshu](https://github.com/PriyanshuDash)** – Knowledge base creation & integration  
+- **[Tanish](https://github.com/dastanish2256)** – Frontend & Canvas UI design  
+- **[Santosh](https://github.com/GovindSantoshS)** – Data modeling & report generation  
+- **[Piyush](https://github.com/piyushram612)** – Project management & presentation design
 
 ## 🙌 Closing Note
 AccuQuery AI is not just a chatbot — it is a **workspace for decisions**, transforming background screening into a smarter, faster, and more human process.  
