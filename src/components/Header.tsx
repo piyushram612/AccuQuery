@@ -74,4 +74,11 @@ const Header: React.FC<HeaderProps> = ({ selectedRole, onRoleChange, sidebarOpen
   );
 };
 
+interface HeaderProps {
+  selectedRole: UserRole;
+  onRoleChange: (role: UserRole) => void;
+  sidebarOpen: boolean;
+  onSidebarToggle: () => void; // This was missing
+}
+
 export default Header;

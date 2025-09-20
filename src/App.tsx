@@ -1,177 +1,199 @@
-// src/App.tsx
-import { useState, useCallback } from 'react';
-import { UserRole, CanvasWidget, CanvasLayout } from './types';
-
-// --- Import all your components ---
+import { useState, useEffect, useCallback } from 'react';
+import { Routes, Route, useParams, useNavigate, Navigate } from 'react-router-dom';
+import { UserRole, CanvasWidget, ChatSession, Message } from './types';
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import AuditLog from './components/AuditLog';
-import { Analytics } from './components/Analytics.mdx'; // Corrected import
-import PersistentCanvas from './components/PersistentCanvas';
-import ComparisonModal from './components/ComparisonModal';
+import Analytics from './components/Analytics';
+import WorkspaceView from './components/WorkspaceView';
 
-// --- Mock Functions (Replace with your actual logic) ---
-const processNLPQuery = async (prompt: string, role: UserRole) => {
-  console.log(`Processing query for ${role}: ${prompt}`);
-  if (prompt.toLowerCase().includes('metric')) {
-     return { type: 'metric', title: 'Total Orders', data: { value: '1,234' } };
-  }
-  return { type: 'text', title: `Response to: "${prompt}"`, data: { content: 'This is a detailed text response for your query.' } };
-};
-const calculateNextPosition = (widgets: CanvasWidget[]) => ({ x: 0, y: widgets.length * 10 });
-const getDefaultSize = (type: CanvasWidget['type']) => {
-  if (type === 'chart') return { width: 400, height: 300 };
-  return { width: 300, height: 150 };
-};
-// --- End Mock Functions ---
+const getTitleFromPrompt = (prompt: string) =>
+  prompt.split(' ').slice(0, 5).join(' ') + (prompt.split(' ').length > 5 ? '...' : '');
+
+const N8N_WEBHOOK_URL = "https://accuquery.app.n8n.cloud/webhook/265defbb-0f2c-43ee-bf73-db1cddeec134";
 
 function App() {
   const [selectedRole, setSelectedRole] = useState<UserRole>('Recruiter');
   const [activeView, setActiveView] = useState<'chat' | 'audit' | 'analytics'>('chat');
   const [sidebarOpen, setSidebarOpen] = useState(true);
-  
-  // Canvas and Widget State
-  const [isCanvasOpen, setIsCanvasOpen] = useState(false);
-  const [canvasWidgets, setCanvasWidgets] = useState<CanvasWidget[]>([]);
-  const [canvasLayout, setCanvasLayout] = useState<CanvasLayout>('grid');
+  const navigate = useNavigate();
 
-  // Comparison Modal State
-  const [comparisonState, setComparisonState] = useState({
-    isOpen: false,
-    sourceWidgetId: null as string | null,
+  const [sessions, setSessions] = useState<ChatSession[]>(() => {
+    const saved = localStorage.getItem('accuquery-sessions');
+    return saved ? JSON.parse(saved) : [];
   });
 
-  const handlePromptSubmit = async (prompt: string) => {
-    const response = await processNLPQuery(prompt, selectedRole);
-    const newWidget: CanvasWidget = {
-      id: `widget_${Date.now()}`, type: response.type as CanvasWidget['type'],
-      title: response.title, data: response.data, query: prompt,
-      timestamp: new Date().toISOString(), position: calculateNextPosition(canvasWidgets),
-      size: getDefaultSize(response.type as CanvasWidget['type'])
-    };
-    setCanvasWidgets(prev => [...prev, newWidget]);
-    
-    // Coordinate states: open canvas, close sidebar
-    setIsCanvasOpen(true);
-    setSidebarOpen(false); 
-  };
-  
-  const handleCloseCanvas = () => {
-    setIsCanvasOpen(false);
-    setSidebarOpen(true);
-  };
+  useEffect(() => {
+    localStorage.setItem('accuquery-sessions', JSON.stringify(sessions));
+  }, [sessions]);
 
-  const handleWidgetCompare = (widgetId: string) => {
-    setComparisonState({ isOpen: true, sourceWidgetId: widgetId });
-  };
+  const [activeChatId, setActiveChatId] = useState<string | null>(() => {
+    const saved = localStorage.getItem('accuquery-sessions');
+    return saved ? (JSON.parse(saved)[0]?.id || null) : null;
+  });
 
-  const handleComparisonSubmit = async (comparisonPrompt: string) => {
-    if (!comparisonState.sourceWidgetId) return;
-    const sourceWidget = canvasWidgets.find(w => w.id === comparisonState.sourceWidgetId);
-    if (!sourceWidget) return;
-    
-    const targetResponse = await processNLPQuery(comparisonPrompt, selectedRole);
+  const handlePromptSubmit = async (prompt: string, chatId: string) => {
+    try {
+      // Fetch data from n8n webhook
+      const response = await fetch(N8N_WEBHOOK_URL, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ query: prompt }),
+      });
 
-    const comparisonWidget: CanvasWidget = {
-      id: `widget_${Date.now()}`, type: 'comparison',
-      title: `Comparison: ${sourceWidget.title} vs. ${targetResponse.title}`,
-      query: `Compare "${sourceWidget.query}" with "${comparisonPrompt}"`,
-      data: { source: sourceWidget, target: targetResponse },
-      timestamp: new Date().toISOString(), position: calculateNextPosition(canvasWidgets),
-      size: { width: 600, height: 250 }, relatedWidgets: [sourceWidget.id],
-    };
-    
-    setCanvasWidgets(prev => [...prev, comparisonWidget]);
-    setComparisonState({ isOpen: false, sourceWidgetId: null });
+      let replyData: any;
+
+      if (!response.ok) {
+        // If HTTP status not OK, capture error text
+        const errorText = await response.text();
+        replyData = { error: `HTTP ${response.status}: ${errorText}` };
+      } else {
+        // Parse JSON reply
+        replyData = await response.json();
+      }
+
+      setSessions(prevSessions =>
+        prevSessions.map(session => {
+          if (session.id === chatId) {
+            const isTable = Array.isArray(replyData) && replyData.length > 0 && typeof replyData[0] === 'object';
+            const widgetType = isTable ? 'table' : 'text';
+            const newWidget: CanvasWidget = {
+              id: `widget_${Date.now()}`,
+              type: widgetType,
+              title: `Response to: "${prompt}"`,
+              data: replyData,
+              query: prompt,
+              timestamp: new Date().toISOString(),
+              position: { x: 0, y: 0 },
+              size: { width: 300, height: 200 },
+            };
+            const newTitle = session.title === 'New Chat' ? getTitleFromPrompt(prompt) : session.title;
+            const userMessage: Message = { role: 'user', content: prompt };
+            const botContent = replyData.error ? replyData.error :
+              isTable ? "I've generated a table with your data." : JSON.stringify(replyData);
+            const botMessage: Message = { role: 'assistant', content: botContent, hasWidget: true };
+            return {
+              ...session,
+              title: newTitle,
+              messages: [...session.messages, userMessage, botMessage],
+              widgets: [...session.widgets, newWidget],
+            };
+          }
+          return session;
+        })
+      );
+    } catch (error) {
+      const errMsg = (error instanceof Error) ? error.message : String(error);
+      setSessions(prevSessions =>
+        prevSessions.map(session => {
+          if (session.id === chatId) {
+            const errorWidget: CanvasWidget = {
+              id: `widget_${Date.now()}`,
+              type: 'text',
+              title: `Response to: "${prompt}"`,
+              data: { error: `Network error: ${errMsg}` },
+              query: prompt,
+              timestamp: new Date().toISOString(),
+              position: { x: 0, y: 0 },
+              size: { width: 300, height: 200 },
+            };
+            const newTitle = session.title === 'New Chat' ? getTitleFromPrompt(prompt) : session.title;
+            const userMessage: Message = { role: 'user', content: prompt };
+            const botMessage: Message = { role: 'assistant', content: `Network error: ${errMsg}`, hasWidget: true };
+            return {
+              ...session,
+              title: newTitle,
+              messages: [...session.messages, userMessage, botMessage],
+              widgets: [...session.widgets, errorWidget],
+            };
+          }
+          return session;
+        })
+      );
+    }
   };
 
   const handleWidgetRemove = useCallback((widgetId: string) => {
-    setCanvasWidgets(prev => prev.filter(w => w.id !== widgetId));
-  }, []);
+    if (!activeChatId) return;
+    setSessions(prev =>
+      prev.map(s =>
+        s.id === activeChatId ? { ...s, widgets: s.widgets.filter(w => w.id !== widgetId) } : s
+      )
+    );
+  }, [activeChatId]);
 
-  const handleChatReply = (reply: unknown, prompt: string) => {
-    // Determine widget type
-    let type: CanvasWidget['type'] = 'text';
-    if (Array.isArray(reply) && reply.length > 0 && typeof reply[0] === 'object') type = 'table';
-    // Create widget
-    const newWidget: CanvasWidget = {
-      id: `widget_${Date.now()}`,
-      type,
-      title: `Response to: "${prompt}"`,
-      data: reply,
-      query: prompt,
-      timestamp: new Date().toISOString(),
-      position: calculateNextPosition(canvasWidgets),
-      size: getDefaultSize(type)
+  const handleNewChat = () => {
+    const newChatId = `chat_${Date.now()}`;
+    const newChat: ChatSession = {
+      id: newChatId,
+      title: 'New Chat',
+      messages: [{ role: 'assistant', content: "How can I help you today?" }],
+      widgets: [],
     };
-    setCanvasWidgets(prev => [...prev, newWidget]);
-    setIsCanvasOpen(true);
-    setSidebarOpen(false);
+    setSessions(prev => [newChat, ...prev]);
+    setActiveChatId(newChatId);
+    navigate(`/chat/${newChatId}`);
   };
 
-  const renderDefaultView = () => {
-     switch (activeView) {
-      case 'chat':
-        return <ChatInterface onReply={handleChatReply} />;
-      case 'audit':
-        return <AuditLog />;
-      case 'analytics':
-        return <Analytics />;
-      default:
-        return <ChatInterface onReply={handleChatReply} />;
+  const ActiveChat = () => {
+    const activeChat = sessions.find(c => c.id === activeChatId);
+    if (!activeChat) {
+      return <div className="flex-1 flex items-center justify-center bg-gray-50"><p>Select or start a new chat.</p></div>;
     }
-  }
+    return (
+      <ChatInterface
+        key={activeChatId}
+        chat={activeChat}
+        onPromptSubmit={handlePromptSubmit}
+        isLoading={false}
+      />
+    );
+  };
+
+  const ActiveWorkspace = () => {
+    const { chatId } = useParams<{ chatId: string }>();
+    const activeChat = sessions.find(c => c.id === chatId);
+    if (!activeChat) return <Navigate to="/chat" replace />;
+    return <WorkspaceView chat={activeChat} onWidgetRemove={handleWidgetRemove} />;
+  };
 
   return (
-     <div className="min-h-screen bg-gray-50 dark:bg-gray-950 flex flex-col">
-       <Header 
-         selectedRole={selectedRole} 
-         onRoleChange={setSelectedRole}
-         sidebarOpen={sidebarOpen}
-         onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-       />
-       <div className="flex-1 flex overflow-hidden">
-         <Sidebar 
-            activeView={activeView} 
-            onViewChange={setActiveView}
-            sidebarOpen={sidebarOpen}
-            onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
-         />
-         <main className="flex-1 flex flex-col overflow-hidden">
-           <div className="flex-1 flex h-full">
-               <div className={`${isCanvasOpen ? 'w-1/2 lg:w-1/3' : 'w-full'} transition-all duration-300 ease-in-out h-full`}>
-                  {renderDefaultView()}
-               </div>
-               <div className={`${isCanvasOpen ? 'w-1/2 lg:w-2/3' : 'w-0'} transition-all duration-300 ease-in-out h-full flex flex-col`}>
-                  {isCanvasOpen && (
-                    <>
-                      <header className="p-4 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workspace</h2>
-                        <button
-                          onClick={handleCloseCanvas}
-                          className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded"
-                        >
-                          Close
-                        </button>
-                      </header>
-                      <PersistentCanvas
-                        widgets={canvasWidgets}
-                        layout={canvasLayout}
-                        onWidgetRemove={handleWidgetRemove}
-                        onWidgetCompare={handleWidgetCompare}
-                      />
-                    </>
-                  )}
-               </div>
-           </div>
-         </main>
-       </div>
-      <ComparisonModal
-        isOpen={comparisonState.isOpen}
-        onClose={() => setComparisonState({ isOpen: false, sourceWidgetId: null })}
-        onSubmit={handleComparisonSubmit}
+    <div className="min-h-screen bg-gray-50 flex flex-col">
+      <Header
+        selectedRole={selectedRole}
+        onRoleChange={setSelectedRole}
+        sidebarOpen={sidebarOpen}
+        onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
       />
+      <div className="flex-1 flex overflow-hidden">
+        <Sidebar
+          activeView={activeView}
+          onViewChange={(view) => {
+            setActiveView(view);
+            if (view === 'chat' && activeChatId) {
+              navigate(`/chat/${activeChatId}`);
+            } else {
+              navigate(`/${view}`);
+            }
+          }}
+          sidebarOpen={sidebarOpen}
+          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+          chats={sessions}
+          activeChatId={activeChatId}
+          onNewChat={handleNewChat}
+          onSelectChat={setActiveChatId}
+        />
+        <main className="flex-1 flex flex-col overflow-hidden">
+          <Routes>
+            <Route path="/chat/:chatId?" element={<ActiveChat />} />
+            <Route path="/workspace/:chatId" element={<ActiveWorkspace />} />
+            <Route path="/audit" element={<AuditLog />} />
+            <Route path="/analytics" element={<Analytics />} />
+            <Route path="/" element={<Navigate to={`/chat/${activeChatId || ''}`} replace />} />
+          </Routes>
+        </main>
+      </div>
     </div>
   );
 }
