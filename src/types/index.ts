@@ -22,10 +22,16 @@ export interface WidgetConnection {
   relationship: 'comparison' | 'drill_down' | 'related' | 'time_series';
 }
 
+export interface Folder {
+    id: string;
+    name: string;
+}
+
 export interface Conversation {
     id: string;
     title: string;
     messages: Message[];
+    folderId: string | null; // Can be null for chats not in a folder
 }
 
 export interface Message {

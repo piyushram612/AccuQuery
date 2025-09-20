@@ -1,10 +1,11 @@
 import React, { useState, useRef, KeyboardEvent, useEffect } from 'react';
-import { Input } from "@/components/ui/input";
+// Import Textarea instead of Input
+import { Textarea } from "@/components/ui/textarea";
 import { Button } from "@/components/ui/button";
 import { Send, ArrowRight } from 'lucide-react';
 import { Message } from '../types';
 
-const N8N_WEBHOOK_URL = "https://accuquery.app.n8n.cloud/webhook/e2e7ddf2-c158-465a-ab98-3abcb09fa248";
+const N8N_WEBHOOK_URL = "https://accuquery.app.n8n.cloud/webhook/265defbb-0f2c-43ee-bf73-db1cddeec134";
 
 function isTabular(data: unknown): data is Array<Record<string, unknown>> {
   return Array.isArray(data) && data.length > 0 && typeof data[0] === 'object' && Object.keys(data[0]).length > 1;
@@ -25,14 +26,13 @@ const MessageBubble: React.FC<{ message: Message; onGoToWorkspace: () => void; }
       <div className={`max-w-xl p-3 rounded-lg text-sm md:text-base ${
           isUser
             ? 'bg-green-600 text-white'
-            : 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-200'
+            : 'bg-muted text-muted-foreground'
         }`}
       >
         <span>{message.content}</span>
         {showWorkspaceButton && (
             <Button
                 onClick={onGoToWorkspace}
-                // Removed variant and added custom, high-visibility classes
                 className="mt-3 w-full h-10 bg-green-600 text-white hover:bg-green-700 dark:bg-green-700 dark:hover:bg-green-600"
             >
                 Go to Workspace
@@ -49,7 +49,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessages, onReply,
   const [input, setInput] = useState<string>("");
   const [loading, setLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
-  const inputRef = useRef<HTMLInputElement>(null);
+  // Update ref to point to a Textarea element
+  const inputRef = useRef<HTMLTextAreaElement>(null);
   const scrollAreaRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -96,17 +97,20 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessages, onReply,
     }
   };
 
-  const handleKeyDown = (e: KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === 'Enter') {
+  // Update the event handler for the Textarea
+  const handleKeyDown = (e: KeyboardEvent<HTMLTextAreaElement>) => {
+    // Send on Enter, but allow new lines with Shift+Enter
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault(); // Prevents adding a new line
       handleSend();
     }
   };
 
   return (
-    <div className="flex flex-col h-full w-full p-4 bg-white dark:bg-gray-900">
-      <div className="flex-shrink-0 border-b border-gray-200 dark:border-gray-800 pb-4">
-        <h2 className="text-xl font-bold text-gray-900 dark:text-gray-100">Your personal Assistant</h2>
-        <p className="text-gray-500 dark:text-gray-400">Your conversational gateway to background check data.</p>
+    <div className="flex flex-col h-full w-full p-4 bg-background text-foreground">
+      <div className="flex-shrink-0 border-b border-border pb-4">
+        <h2 className="text-xl font-bold text-foreground">Your personal Assistant</h2>
+        <p className="text-muted-foreground">Your conversational gateway to background check data.</p>
       </div>
 
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto pt-4 mb-4 pr-2">
@@ -115,8 +119,8 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessages, onReply,
         ))}
         {loading && (
           <div className="flex justify-start items-center my-2">
-             <div className="max-w-xl p-3 rounded-lg bg-gray-200 dark:bg-gray-800">
-                <span className="animate-pulse text-gray-500 dark:text-gray-400">AccuQuery is thinking...</span>
+             <div className="max-w-xl p-3 rounded-lg bg-muted">
+               <span className="animate-pulse text-muted-foreground">AccuQuery is thinking...</span>
              </div>
           </div>
         )}
@@ -125,21 +129,24 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ initialMessages, onReply,
         )}
       </div>
 
-      <div className="flex items-center gap-2 pt-4 border-t border-gray-200 dark:border-gray-800">
-        <Input
+      {/* Changed items-center to items-end for better alignment with a taller input */}
+      <div className="flex items-end gap-2 pt-4 border-t border-border">
+        {/* Replaced Input with Textarea */}
+        <Textarea
           ref={inputRef}
-          className="flex-1"
-          type="text"
-          placeholder="Ask a question about your data..."
+          className="flex-1 resize-none"
+          placeholder="Ask a question about your data... (Shift + Enter for new line)"
           value={input}
           onChange={e => setInput(e.target.value)}
           onKeyDown={handleKeyDown}
           disabled={loading}
+          rows={3} // Sets the initial height to be 3 lines tall
         />
         <Button
           onClick={handleSend}
           disabled={loading || !input.trim()}
           size="icon"
+          className="self-end" // Ensure button aligns to the bottom
         >
           <Send className="h-4 w-4" />
         </Button>

@@ -1,5 +1,5 @@
 import { useState, useCallback } from 'react';
-import { UserRole, CanvasWidget, Conversation, Message } from './types';
+import { UserRole, CanvasWidget, Conversation, Message, Folder } from './types';
 import { Button } from "@/components/ui/button";
 
 // --- Import all your components ---
@@ -12,10 +12,20 @@ import PersistentCanvas from './components/PersistentCanvas';
 import ComparisonModal from './components/ComparisonModal';
 
 // --- Initial State Setup ---
+const initialFolderId = `folder_${Date.now()}`;
+const initialConversationId = `conv_${Date.now()}`;
+
+const initialFolders: Folder[] = [
+    { id: initialFolderId, name: 'Work' },
+    { id: `folder_${Date.now() + 1}`, name: 'Projects' },
+    { id: `folder_${Date.now() + 2}`, name: 'Clients' },
+];
+
 const initialConversation: Conversation = {
-  id: `conv_${Date.now()}`,
+  id: initialConversationId,
   title: 'New Chat',
   messages: [{ role: 'assistant', content: "How can I help you analyze the background check data today?" }],
+  folderId: initialFolderId,
 };
 
 function App() {
@@ -31,6 +41,9 @@ function App() {
     sourceWidgetId: null as string | null,
   });
 
+  const [folders, setFolders] = useState<Folder[]>(initialFolders);
+  const [activeFolderId, setActiveFolderId] = useState<string | null>(initialFolderId);
+
   const [conversations, setConversations] = useState<Conversation[]>([initialConversation]);
   const [activeConversationId, setActiveConversationId] = useState<string | null>(initialConversation.id);
 
@@ -39,6 +52,7 @@ function App() {
       id: `conv_${Date.now()}`,
       title: 'New Chat',
       messages: [{ role: 'assistant', content: "How can I help you analyze the background check data today?" }],
+      folderId: activeFolderId,
     };
     setConversations(prev => [...prev, newConversation]);
     setActiveConversationId(newConversation.id);
@@ -91,6 +105,22 @@ function App() {
     setIsCanvasOpen(true);
   };
   
+  const handleSelectFolder = (folderId: string) => {
+    setActiveFolderId(folderId);
+  };
+
+  const handleRenameFolder = (folderId: string, newName: string) => {
+    setFolders(prev => prev.map(f => f.id === folderId ? { ...f, name: newName } : f));
+  };
+
+  const handleDeleteFolder = (folderId: string) => {
+    setFolders(prev => prev.filter(f => f.id !== folderId));
+    setConversations(prev => prev.map(c => c.folderId === folderId ? { ...c, folderId: null } : c));
+    if (activeFolderId === folderId) {
+      setActiveFolderId(null);
+    }
+  };
+
   const activeConversation = conversations.find(c => c.id === activeConversationId);
 
   const renderActiveView = () => {
@@ -137,6 +167,11 @@ function App() {
             onSelectConversation={handleSelectConversation}
             onDeleteConversation={handleDeleteConversation}
             onRenameConversation={handleRenameConversation}
+            folders={folders}
+            activeFolderId={activeFolderId}
+            onSelectFolder={handleSelectFolder}
+            onRenameFolder={handleRenameFolder}
+            onDeleteFolder={handleDeleteFolder}
          />
          <main className="flex-1 flex flex-col overflow-y-auto">
             {renderActiveView()}

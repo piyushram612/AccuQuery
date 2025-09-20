@@ -1,6 +1,6 @@
 import React from 'react';
 import { UserRole } from '../types';
-import { Activity, Shield, Users, ChevronsUpDown } from 'lucide-react';
+import { Activity, Shield, Users, ChevronsUpDown, User } from 'lucide-react';
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -35,7 +35,7 @@ const Header: React.FC<HeaderProps> = ({ selectedRole, onRoleChange, activeView,
   const selectedRoleData = roles.find(r => r.value === selectedRole);
 
   return (
-    <header className="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-6 py-0 flex-shrink-0">
+    <header className="bg-transparent border-b border-gray-200 dark:border-gray-800 px-6 py-0 flex-shrink-0">
       <div className="flex items-center justify-between h-16">
         <div className="flex items-center space-x-4">
           <button onClick={onSidebarToggle} className="p-2 rounded-md hover:bg-gray-200 dark:hover:bg-gray-700 text-gray-800 dark:text-gray-200" title="Toggle History">
@@ -92,6 +92,11 @@ const Header: React.FC<HeaderProps> = ({ selectedRole, onRoleChange, activeView,
               ))}
             </DropdownMenuContent>
           </DropdownMenu>
+          
+          <div className="h-9 w-9 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center cursor-pointer" title="User Profile">
+            <User className="h-5 w-5 text-gray-500 dark:text-gray-400" />
+          </div>
+
           <ThemeToggle />	
         </div>
       </div>
