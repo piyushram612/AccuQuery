@@ -98,4 +98,5 @@ N8N_WEBHOOK_URL=<your-n8n-webhook-url>
 - **Piyush** – Project management & presentation design
 
 ## 🙌 Closing Note
-AccuQuery AI is not just a chatbot — it is a **workspace for decisions**, transforming background screening into a smarter, faster, and more human process.   Built with ❤️ during the Accurate Background Hackathon.
+AccuQuery AI is not just a chatbot — it is a **workspace for decisions**, transforming background screening into a smarter, faster, and more human process.  
+Built with ❤️ during the Accurate Background Hackathon.
