@@ -77,13 +77,15 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReply }) => {
       if (onReply) onReply(data, input);
 
       let chatDisplayContent: string;
+      // If the response is tabular or an object (structured), show a default workspace message in chat
+      // and avoid duplicating the full canvas content inside the chat bubble.
       if (isTabular(data)) {
-        chatDisplayContent = "I've generated a table with your data and added it to the workspace.";
+        chatDisplayContent = "I've added a table to your workspace — open Workspace to view the full result.";
       } else {
         const firstItem = data[0];
         if (typeof firstItem === 'object' && firstItem !== null) {
-            const potentialText = (firstItem as any).response || (firstItem as any).result || (firstItem as any).answer;
-            chatDisplayContent = typeof potentialText === 'string' ? potentialText : JSON.stringify(firstItem);
+          // For structured objects, do not render full content in chat. Show a short default message instead.
+          chatDisplayContent = "I've added the result to your workspace — open Workspace to view the full output.";
         } else {
             chatDisplayContent = String(firstItem);
         }
