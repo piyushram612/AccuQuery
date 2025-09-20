@@ -16,27 +16,28 @@ Recruiters, HR managers, and compliance officers often drown in dashboards, filt
 
 AccuQuery AI creates a **workspace experience** (like a canvas/jam board) where queries become interactive cards that can be pinned, drilled into, or exported.
 # Architecture
-
-   User (Recruiter / HR / Compliance)
-                   │
-                   ▼
-            🌐 Frontend (React + Vite + TypeScript, deployed on Vercel)  
-                   │  
-                   ▼  
-      🔗 Webhook → n8n Workflow Orchestrator  
-                   │  
-          ┌────────┴─────────┐  
-          │                  │  
-   🤖 Gemini LLM       📂 Supabase (Postgres)  
- (NLP → SQL + Chart)      (Hackathon Dataset)  
-          │   (returns SQL)   │  
-          └──────▶ Query Execution  
-                   │   
-                   ▼  
-     📊 Visualization + Summaries + Reports  
-                   │  
-                   ▼  
-          🖼️ Canvas Workspace (UI)  
+```
+User (Recruiter / HR / Compliance)
+                │
+                ▼
+         🌐 Frontend (React + Vite + TypeScript, deployed on Vercel)  
+                │  
+                ▼  
+   🔗 Webhook → n8n Workflow Orchestrator  
+                │  
+        ┌────────┴─────────┐  
+        │                  │  
+ 🤖 Gemini LLM       📂 Supabase (Postgres)  
+(NLP → SQL + Chart)      (Hackathon Dataset)  
+        │   (returns SQL)   │  
+        └──────▶ Query Execution  
+                │   
+                ▼  
+      📊 Visualization + Summaries + Reports  
+                │  
+                ▼  
+         🖼️ Canvas Workspace (UI)  
+```
 
 ## ⚙️ Tech Stack
 - **Frontend**: React + Vite + TypeScript  
