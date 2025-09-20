@@ -125,7 +125,7 @@ const ChatHistorySidebar: React.FC<ChatHistorySidebarProps> = ({
             <ul className="space-y-1">
               {filteredConversations.map((chat) => {
                 const isActive = chat.id === activeConversationId;
-                const subtitle = chat.messages[1]?.content || 'No additional messages yet.';
+                const subtitle = chat.messages[1]?.content || '';
                 return (
                   <li key={chat.id} className={cn("group rounded-md relative", isActive && "bg-accent")}>
                      <span className={cn(
