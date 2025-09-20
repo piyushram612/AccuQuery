@@ -15,7 +15,7 @@ Recruiters, HR managers, and compliance officers often drown in dashboards, filt
 - Compliance officers → risk-focused reports  
 
 AccuQuery AI creates a **workspace experience** (like a canvas/jam board) where queries become interactive cards that can be pinned, drilled into, or exported.
-# Architecture 
+# Architecture
 
    User (Recruiter / HR / Compliance)
                    │
@@ -37,6 +37,7 @@ AccuQuery AI creates a **workspace experience** (like a canvas/jam board) where 
                    │  
                    ▼  
           🖼️ Canvas Workspace (UI)  
+
 ## ⚙️ Tech Stack
 - **Frontend**: React + Vite + TypeScript  
 - **Deployment**: Vercel  
@@ -69,26 +70,111 @@ We use the provided hackathon dataset **as-is** and host it in Supabase. The dat
    - Renders chart/table/summary
    - Provides context menu (Export PDF, Email via n8n, Drill-down, Pin to Dashboard)
 
+## 🛠️ Setup & Installation
+
 ### Prerequisites
-- Node.js v18+  
-- npm or yarn  
-- Supabase project with the hackathon dataset loaded  
-- n8n instance (local or cloud) and an accessible webhook URL  
-- Gemini API credentials (Google AI Studio)
-- Clone & run (commands)
+- **Node.js** v18+  
+- **npm** or **yarn**  
+- **Supabase** project with the hackathon dataset loaded (or access to a Postgres instance)  
+- **n8n** instance (local or cloud) with an accessible webhook URL  
+- **Gemini / Google AI Studio** API credentials (API key)  
+- (Optional) **Vercel** account for deployment
+
+---
+
+### 1. Clone the repo
+```bash
 git clone <REPO_URL>
 cd accuquery-ai
+```
 
-- install
+---
+
+### 2. Install dependencies
+```bash
 npm install
+# or
+# yarn
+```
 
-- run dev frontend (Vite)
-npm run dev
-- Example .env (create in repo root)
+---
+
+### 3. Environment variables
+Create a `.env` file in the repo root with the following variables (replace placeholders):
+
+```env
 VITE_SUPABASE_URL=https://<your-supabase-project>.supabase.co
 VITE_SUPABASE_KEY=<your-supabase-key>
 GEMINI_API_KEY=<your-gemini-api-key>
 N8N_WEBHOOK_URL=<your-n8n-webhook-url>
+```
+
+**Notes:**
+- Use a Supabase **service role** key for server-side workflows during testing (keep it private).  
+- If your Supabase requires SSL, ensure your DB client (n8n or Postgres node) is configured to use SSL.
+
+---
+
+### 4. Run the frontend (development)
+```bash
+npm run dev
+# Default Vite URL: http://localhost:5173
+```
+
+---
+
+### 5. (Optional) Build & deploy to Vercel
+```bash
+npm run build
+# then follow Vercel CLI or dashboard steps:
+vercel deploy
+```
+
+---
+
+### 6. Load the dataset into Supabase (quick guide)
+1. Export Excel sheets to CSV (one CSV per table).  
+2. In Supabase dashboard → Table Editor → Import CSV → select the target table (or create table schema first).  
+3. Verify column types (timestamps, integers, text) and import each CSV.  
+4. Optionally run any schema adjustments / indexes via SQL editor in Supabase.
+
+---
+
+### 7. Configure n8n workflow
+- Create a webhook node in your n8n instance and copy its URL.  
+- Set `N8N_WEBHOOK_URL` in `.env` to that webhook (or configure frontend to call the webhook endpoint).  
+- Ensure n8n has access to Supabase credentials (via secure environment variables in n8n) so it can execute queries.
+
+---
+
+### 8. Configure Gemini (LLM)
+- Obtain API key from Google AI Studio (Gemini).  
+- In the node that calls Gemini (n8n or backend), use `GEMINI_API_KEY` and follow the provider's recommended request format.  
+- Ensure the model output is instructed to return JSON with keys like `sql`, `chart_type`, `x_axis`, `y_axis`.
+
+---
+
+### 9. Troubleshooting & Tips
+- **CORS:** If the frontend cannot call the webhook, ensure CORS is allowed on the server or call via backend/n8n proxy.  
+- **SQL safety:** During demo/hackathon use, LLM-generated SQL is acceptable. For production, sanitize or whitelist tables/columns.  
+- **Supabase connection issues:** Verify project URL and key, and that network/firewall rules allow access from your environment.  
+- **n8n webhook unreachable:** Confirm n8n is running and public (use ngrok for local testing if needed).
+
+---
+
+### 10. Run the demo flow (quick test)
+1. Start frontend: `npm run dev`  
+2. Ensure Supabase has the dataset and n8n webhook is active.  
+3. Use the UI to submit a test query (e.g., “Show pending education checks by company”).  
+4. Verify the workflow:
+   - Query reached n8n webhook
+   - Gemini returned JSON with `sql` + `chart_type`
+   - n8n executed SQL on Supabase and returned rows
+   - Frontend rendered the visualization
+
+---
+
+
 ## 👥 Team Contributions
 - **Chetan** – Supabase integration  
 - **Pranav** – Workflow automation with n8n  
