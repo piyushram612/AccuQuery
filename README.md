@@ -20,23 +20,23 @@ AccuQuery AI creates a **workspace experience** (like a canvas/jam board) where 
    User (Recruiter / HR / Compliance)
                    │
                    ▼
-            🌐 Frontend (React + Vite + TypeScript, deployed on Vercel)
-                   │
-                   ▼
-      🔗 Webhook → n8n Workflow Orchestrator
-                   │
-          ┌────────┴─────────┐
-          │                  │
-   🤖 Gemini LLM       📂 Supabase (Postgres)
- (NLP → SQL + Chart)      (Hackathon Dataset)
-          │   (returns SQL)   │
-          └──────▶ Query Execution
-                   │
-                   ▼
-     📊 Visualization + Summaries + Reports
-                   │
-                   ▼
-          🖼️ Canvas Workspace (UI)
+            🌐 Frontend (React + Vite + TypeScript, deployed on Vercel)  
+                   │  
+                   ▼  
+      🔗 Webhook → n8n Workflow Orchestrator  
+                   │  
+          ┌────────┴─────────┐  
+          │                  │  
+   🤖 Gemini LLM       📂 Supabase (Postgres)  
+ (NLP → SQL + Chart)      (Hackathon Dataset)  
+          │   (returns SQL)   │  
+          └──────▶ Query Execution  
+                   │   
+                   ▼  
+     📊 Visualization + Summaries + Reports  
+                   │  
+                   ▼  
+          🖼️ Canvas Workspace (UI)  
 ## ⚙️ Tech Stack
 - **Frontend**: React + Vite + TypeScript  
 - **Deployment**: Vercel  
@@ -98,4 +98,4 @@ N8N_WEBHOOK_URL=<your-n8n-webhook-url>
 - **Piyush** – Project management & presentation design
 
 ## 🙌 Closing Note
-AccuQuery AI is not just a chatbot — it is a **workspace for decisions**, transforming background screening into a smarter, faster, and more human process. Built with ❤️ during the Accurate Background Hackathon.
+AccuQuery AI is not just a chatbot — it is a **workspace for decisions**, transforming background screening into a smarter, faster, and more human process.   Built with ❤️ during the Accurate Background Hackathon.
