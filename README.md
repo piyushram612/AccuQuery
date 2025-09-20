@@ -70,6 +70,8 @@ We use the provided hackathon dataset **as-is** and host it in Supabase. The dat
    - Renders chart/table/summary
    - Provides context menu (Export PDF, Email via n8n, Drill-down, Pin to Dashboard)
 
+  ---
+
 ## 🛠️ Setup & Installation
 
 ### Prerequisites
@@ -80,7 +82,7 @@ We use the provided hackathon dataset **as-is** and host it in Supabase. The dat
 - **Gemini / Google AI Studio** API credentials (API key)  
 - (Optional) **Vercel** account for deployment
 
----
+
 
 ### 1. Clone the repo
 ```bash
@@ -88,7 +90,7 @@ git clone <REPO_URL>
 cd accuquery-ai
 ```
 
----
+
 
 ### 2. Install dependencies
 ```bash
@@ -97,7 +99,7 @@ npm install
 # yarn
 ```
 
----
+
 
 ### 3. Environment variables
 Create a `.env` file in the repo root with the following variables (replace placeholders):
@@ -113,7 +115,7 @@ N8N_WEBHOOK_URL=<your-n8n-webhook-url>
 - Use a Supabase **service role** key for server-side workflows during testing (keep it private).  
 - If your Supabase requires SSL, ensure your DB client (n8n or Postgres node) is configured to use SSL.
 
----
+
 
 ### 4. Run the frontend (development)
 ```bash
@@ -121,7 +123,7 @@ npm run dev
 # Default Vite URL: http://localhost:5173
 ```
 
----
+
 
 ### 5. (Optional) Build & deploy to Vercel
 ```bash
@@ -130,7 +132,7 @@ npm run build
 vercel deploy
 ```
 
----
+
 
 ### 6. Load the dataset into Supabase (quick guide)
 1. Export Excel sheets to CSV (one CSV per table).  
@@ -138,21 +140,21 @@ vercel deploy
 3. Verify column types (timestamps, integers, text) and import each CSV.  
 4. Optionally run any schema adjustments / indexes via SQL editor in Supabase.
 
----
+
 
 ### 7. Configure n8n workflow
 - Create a webhook node in your n8n instance and copy its URL.  
 - Set `N8N_WEBHOOK_URL` in `.env` to that webhook (or configure frontend to call the webhook endpoint).  
 - Ensure n8n has access to Supabase credentials (via secure environment variables in n8n) so it can execute queries.
 
----
+
 
 ### 8. Configure Gemini (LLM)
 - Obtain API key from Google AI Studio (Gemini).  
 - In the node that calls Gemini (n8n or backend), use `GEMINI_API_KEY` and follow the provider's recommended request format.  
 - Ensure the model output is instructed to return JSON with keys like `sql`, `chart_type`, `x_axis`, `y_axis`.
 
----
+
 
 ### 9. Troubleshooting & Tips
 - **CORS:** If the frontend cannot call the webhook, ensure CORS is allowed on the server or call via backend/n8n proxy.  
@@ -160,7 +162,7 @@ vercel deploy
 - **Supabase connection issues:** Verify project URL and key, and that network/firewall rules allow access from your environment.  
 - **n8n webhook unreachable:** Confirm n8n is running and public (use ngrok for local testing if needed).
 
----
+
 
 ### 10. Run the demo flow (quick test)
 1. Start frontend: `npm run dev`  
