@@ -1,13 +1,13 @@
-// src/App.tsx
 import { useState, useCallback } from 'react';
 import { UserRole, CanvasWidget, CanvasLayout } from './types';
+import { Button } from "@/components/ui/button"; // Add this import
 
 // --- Import all your components ---
 import Header from './components/Header';
 import Sidebar from './components/Sidebar';
 import ChatInterface from './components/ChatInterface';
 import AuditLog from './components/AuditLog';
-import { Analytics } from './components/Analytics.mdx'; // Corrected import
+import { Analytics } from './components/Analytics.mdx';
 import PersistentCanvas from './components/PersistentCanvas';
 import ComparisonModal from './components/ComparisonModal';
 
@@ -52,14 +52,12 @@ function App() {
     };
     setCanvasWidgets(prev => [...prev, newWidget]);
     
-    // Coordinate states: open canvas, close sidebar
+    // Open canvas on prompt submit
     setIsCanvasOpen(true);
-    setSidebarOpen(false); 
   };
   
   const handleCloseCanvas = () => {
     setIsCanvasOpen(false);
-    setSidebarOpen(true);
   };
 
   const handleWidgetCompare = (widgetId: string) => {
@@ -107,17 +105,15 @@ function App() {
     };
     setCanvasWidgets(prev => [...prev, newWidget]);
     setIsCanvasOpen(true);
-    setSidebarOpen(false);
   };
 
-  const renderDefaultView = () => {
+  const renderActiveView = () => {
      switch (activeView) {
-      case 'chat':
-        return <ChatInterface onReply={handleChatReply} />;
       case 'audit':
         return <AuditLog />;
       case 'analytics':
         return <Analytics />;
+      case 'chat':
       default:
         return <ChatInterface onReply={handleChatReply} />;
     }
@@ -128,42 +124,39 @@ function App() {
        <Header 
          selectedRole={selectedRole} 
          onRoleChange={setSelectedRole}
-         sidebarOpen={sidebarOpen}
+         activeView={activeView}
+         onViewChange={setActiveView}
          onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
        />
        <div className="flex-1 flex overflow-hidden">
          <Sidebar 
             activeView={activeView} 
             onViewChange={setActiveView}
-            sidebarOpen={sidebarOpen}
-            onSidebarToggle={() => setSidebarOpen(!sidebarOpen)}
+            isOpen={sidebarOpen}
          />
          <main className="flex-1 flex flex-col overflow-hidden">
            <div className="flex-1 flex h-full">
                <div className={`${isCanvasOpen ? 'w-1/2 lg:w-1/3' : 'w-full'} transition-all duration-300 ease-in-out h-full`}>
-                  {renderDefaultView()}
+                  {renderActiveView()}
                </div>
-               <div className={`${isCanvasOpen ? 'w-1/2 lg:w-2/3' : 'w-0'} transition-all duration-300 ease-in-out h-full flex flex-col`}>
-                  {isCanvasOpen && (
-                    <>
-                      <header className="p-4 bg-white dark:bg-gray-900 border-b border-gray-300 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
-                        <h2 className="text-2xl font-bold text-gray-900 dark:text-gray-100">Workspace</h2>
-                        <button
-                          onClick={handleCloseCanvas}
-                          className="bg-gray-200 hover:bg-gray-300 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-gray-200 font-bold py-2 px-4 rounded"
-                        >
-                          Close
-                        </button>
-                      </header>
-                      <PersistentCanvas
-                        widgets={canvasWidgets}
-                        layout={canvasLayout}
-                        onWidgetRemove={handleWidgetRemove}
-                        onWidgetCompare={handleWidgetCompare}
-                      />
-                    </>
-                  )}
-               </div>
+               {isCanvasOpen && (
+                 <div className="w-1/2 lg:w-2/3 h-full flex flex-col transition-all duration-300 ease-in-out">
+                    <header className="p-4 bg-white dark:bg-gray-900 border-b border-l border-gray-300 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
+                      <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Workspace</h2>
+                      <Button
+                        variant="outline"
+                        onClick={handleCloseCanvas}
+                      >
+                        Close Workspace
+                      </Button>
+                    </header>
+                    <PersistentCanvas
+                      widgets={canvasWidgets}
+                      onWidgetRemove={handleWidgetRemove}
+                      onWidgetCompare={handleWidgetCompare}
+                    />
+                 </div>
+               )}
            </div>
          </main>
        </div>

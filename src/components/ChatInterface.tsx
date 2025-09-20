@@ -32,7 +32,7 @@ const MessageBubble: React.FC<{ message: Message }> = React.memo(({ message }) =
     <div className={`mb-3 flex ${isUser ? 'justify-end' : 'justify-start'}`}>
       <div className={`max-w-xl p-3 rounded-lg text-sm md:text-base ${
           isUser
-            ? 'bg-blue-600 text-white'
+            ? 'bg-green-600 text-white'
             : 'bg-gray-200 dark:bg-gray-800 text-gray-900 dark:text-gray-200'
         }`}
       >
@@ -111,7 +111,7 @@ const ChatInterface: React.FC<ChatInterfaceProps> = ({ onReply }) => {
     // Dark Mode: Added dark mode classes for background and border.
     <div className="flex flex-col h-full w-full p-4 bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-800 rounded-lg shadow-md">
       {/* Dark Mode: Added dark mode text colors. */}
-      <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">💬 AccuQuery AI Assistant</h2>
+      <h2 className="text-xl font-bold mb-2 text-gray-900 dark:text-gray-100">Your personal Assistant</h2>
       <p className="text-gray-500 dark:text-gray-400 mb-4">Your conversational gateway to background check data.</p>
 
       <div ref={scrollAreaRef} className="flex-1 overflow-y-auto mb-4 pr-2">
