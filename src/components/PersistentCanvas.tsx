@@ -61,11 +61,13 @@ const PersistentCanvas: React.FC<PersistentCanvasProps> = ({
   onWidgetCompare,
 }) => {
   return (
-    <div className="h-full w-full overflow-y-auto bg-gray-100 dark:bg-gray-950 p-4">
+    // Use theme variable for the main background
+    <div className="h-full w-full overflow-y-auto bg-background p-4">
       {widgets.length > 0 ? (
         <div className="space-y-4">
           {widgets.map((widget) => (
-            <Card key={widget.id} className="bg-white dark:bg-gray-900">
+            // Card component now defaults to the correct theme background (bg-card)
+            <Card key={widget.id}>
               <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
                 <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
                 <Button
@@ -82,15 +84,16 @@ const PersistentCanvas: React.FC<PersistentCanvasProps> = ({
                 {renderWidgetContent(widget)}
               </CardContent>
               <CardFooter>
-                 <p className="text-xs text-muted-foreground italic w-full truncate">Query: "{widget.query}"</p>
+                  <p className="text-xs text-muted-foreground italic w-full truncate">Query: "{widget.query}"</p>
               </CardFooter>
             </Card>
           )).reverse() /* Show newest widgets at the top */}
         </div>
       ) : (
-        <div className="text-center text-gray-500 pt-16 w-full">
+        // Use theme variable for empty state text
+        <div className="text-center text-muted-foreground pt-16 w-full">
           <p className="text-lg">Your workspace is empty.</p>
-          <p className="text-sm text-gray-400">Ask a question to add items to your workspace.</p>
+          <p className="text-sm">Ask a question to add items to your workspace.</p>
         </div>
       )}
     </div>

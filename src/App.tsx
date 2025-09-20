@@ -177,10 +177,10 @@ function App() {
             {renderActiveView()}
          </main>
          {isCanvasOpen && (
-           <aside className="w-[450px] flex-shrink-0 border-l border-gray-200 dark:border-gray-800 flex flex-col">
-              <header className="p-4 bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 flex justify-between items-center flex-shrink-0">
-                <h2 className="text-lg font-bold text-gray-900 dark:text-gray-100">Workspace</h2>
-                <Button variant="outline" onClick={handleCloseCanvas}>Close</Button>
+          <aside className="w-[450px] flex-shrink-0 border-l border-border flex flex-col">
+              <header className="p-4 bg-background border-b border-border flex justify-between items-center flex-shrink-0">
+                  <h2 className="text-lg font-bold text-foreground">Workspace</h2>
+                  <Button variant="outline" onClick={handleCloseCanvas}>Close</Button>
               </header>
               <PersistentCanvas
                 widgets={canvasWidgets}
