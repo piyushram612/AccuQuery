@@ -15,7 +15,7 @@ Recruiters, HR managers, and compliance officers often drown in dashboards, filt
 - Compliance officers → risk-focused reports  
 
 AccuQuery AI creates a **workspace experience** (like a canvas/jam board) where queries become interactive cards that can be pinned, drilled into, or exported.
-# Architecture (text diagram)
+# Architecture 
 
    User (Recruiter / HR / Compliance)
                    │
@@ -75,16 +75,16 @@ We use the provided hackathon dataset **as-is** and host it in Supabase. The dat
 - Supabase project with the hackathon dataset loaded  
 - n8n instance (local or cloud) and an accessible webhook URL  
 - Gemini API credentials (Google AI Studio)
-# Clone & run (commands)
+- Clone & run (commands)
 git clone <REPO_URL>
 cd accuquery-ai
 
-# install
+- install
 npm install
 
-# run dev frontend (Vite)
+- run dev frontend (Vite)
 npm run dev
-# Example .env (create in repo root)
+- Example .env (create in repo root)
 VITE_SUPABASE_URL=https://<your-supabase-project>.supabase.co
 VITE_SUPABASE_KEY=<your-supabase-key>
 GEMINI_API_KEY=<your-gemini-api-key>
