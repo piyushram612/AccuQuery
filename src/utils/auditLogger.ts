@@ -1,4 +1,5 @@
 import { AuditLog, UserRole } from '../types';
+import { mockAuditLogs } from '../data/mockAuditLogs';
 
 class AuditLogger {
   private static instance: AuditLogger;
@@ -52,12 +53,16 @@ class AuditLogger {
   private loadLogs(): void {
     try {
       const savedLogs = localStorage.getItem('accuquery_audit_logs');
-      if (savedLogs) {
+      if (savedLogs && JSON.parse(savedLogs).length > 0) {
         this.logs = JSON.parse(savedLogs);
+      } else {
+        // If no logs in storage, load the mock data
+        this.logs = mockAuditLogs;
+        this.saveLogs(); // Optionally save the mock data to local storage
       }
     } catch (error) {
       console.error('Failed to load audit logs:', error);
-      this.logs = [];
+      this.logs = mockAuditLogs; // Fallback to mock data on error
     }
   }
 }
