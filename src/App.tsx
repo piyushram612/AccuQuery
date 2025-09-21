@@ -1,16 +1,16 @@
 import { useState, useCallback } from 'react';
-import Login from './components/Login';
-import { UserRole, CanvasWidget, Conversation, Folder } from './types';
+import Login from '@/components/Login';
+import { UserRole, CanvasWidget, Conversation, Folder, ChartData } from '@/types';
 import { Button } from "@/components/ui/button";
 
 // --- Import all your components ---
-import Header from './components/Header';
-import ChatHistorySidebar from './components/ChatHistorySidebar';
-import ChatInterface from './components/ChatInterface';
-import AuditLog from './components/AuditLog';
-import { Analytics } from './components/Analytics.mdx';
-import PersistentCanvas from './components/PersistentCanvas';
-import ComparisonModal from './components/ComparisonModal';
+import Header from '@/components/Header';
+import ChatHistorySidebar from '@/components/ChatHistorySidebar';
+import ChatInterface from '@/components/ChatInterface';
+import AuditLog from '@/components/AuditLog';
+import { Analytics } from '@/components/Analytics.mdx';
+import PersistentCanvas from '@/components/PersistentCanvas';
+import ComparisonModal from '@/components/ComparisonModal';
 
 // --- Initial State Setup ---
 const initialFolderId = `folder_${Date.now()}`;
@@ -93,33 +93,26 @@ function App() {
   }, []);
 
   const handleChatReply = (reply: unknown, prompt: string) => {
-    // Advanced reply parsing logic from the first file
     let widgetType: CanvasWidget["type"] = "text";
-    let widgetData: any = { content: "Could not display the response." }; // Default data
+    let widgetData: any = { content: "Could not display the response." };
   
-    // Check if reply is an array (most common case for complex data)
     if (Array.isArray(reply) && reply.length > 0) {
       const firstItem = reply[0];
       if (typeof firstItem === 'object' && firstItem !== null) {
-        // Case 1: RAG data is directly in the object
         if (firstItem.RAG) {
           widgetType = "text";
           widgetData = { content: firstItem.RAG };
-        } 
-        // Case 2: SQL data is nested inside a SQL property
-        else if (firstItem.SQL && Array.isArray(firstItem.SQL) && firstItem.SQL.length > 0) {
+        } else if (firstItem.SQL && Array.isArray(firstItem.SQL) && firstItem.SQL.length > 0) {
           const sqlContent = firstItem.SQL[0];
           if (sqlContent.SQL_DATA && Array.isArray(sqlContent.SQL_DATA)) {
             widgetType = "table";
             widgetData = sqlContent.SQL_DATA;
           } else if (sqlContent.SQL_CHART) {
-            // "chart" type can be used for custom chart components
-            widgetType = "text"; 
-            widgetData = { content: JSON.stringify(sqlContent.SQL_CHART) };
+            // FIX: Correctly identify and assign chart data
+            widgetType = "chart"; 
+            widgetData = sqlContent.SQL_CHART as ChartData;
           }
-        } 
-        // Case 3: Tabular data without specific keys
-        else {
+        } else {
             widgetType = "table";
             widgetData = reply;
         }
@@ -135,8 +128,9 @@ function App() {
       id: `widget_${Date.now()}`,
       type: widgetType,
       title: `Response to: "${prompt}"`,
-      data: widgetData,
       query: prompt,
+      data: widgetData,
+      timestamp: new Date().toISOString(),
     };
     setCanvasWidgets(prev => [...prev, newWidget]);
     setIsCanvasOpen(true);
@@ -170,7 +164,7 @@ function App() {
       default:
         return activeConversation ? (
           <ChatInterface 
-            key={activeConversation.id} // Ensures component re-mounts on conversation change
+            key={activeConversation.id}
             initialMessages={activeConversation.messages}
             onReply={handleChatReply} 
             onGoToWorkspace={handleGoToWorkspace}

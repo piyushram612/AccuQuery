@@ -1,11 +1,12 @@
-import React, { useState, useRef } from 'react';
+import React, { useState } from 'react';
 import { Card, CardHeader, CardContent, CardTitle, CardFooter } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Table, TableHeader, TableRow, TableHead, TableBody, TableCell } from "@/components/ui/table";
 import { Copy, X } from 'lucide-react';
-import { CanvasWidget } from '../types';
+import { CanvasWidget, ChartData } from '../types';
+import ChartDisplay from './ChartDisplay';
 
-// --- Merged WidgetCard Component (from version 2) with Theming ---
+// --- WidgetCard Component ---
 interface WidgetCardProps {
   widget: CanvasWidget;
   onRemove: (id: string) => void;
@@ -15,11 +16,14 @@ interface WidgetCardProps {
 const WidgetCard: React.FC<WidgetCardProps> = ({ widget, onRemove, onCompare }) => {
   const [expanded, setExpanded] = useState(false);
 
-  // Advanced rendering logic from version 2, now themed
   const renderWidgetContent = () => {
     switch (widget.type) {
+      case "chart":
+        // Use the generic ChartDisplay component for dynamic charts
+        return <ChartDisplay chartData={widget.data as ChartData} />;
+      
       case "table":
-        if (Array.isArray(widget.data) && widget.data.length > 0) {
+        if (Array.isArray(widget.data) && widget.data.length > 0 && typeof widget.data[0] === 'object' && widget.data[0] !== null) {
           const isExpandable = widget.data.length > 3;
           return (
             <>
@@ -54,7 +58,6 @@ const WidgetCard: React.FC<WidgetCardProps> = ({ widget, onRemove, onCompare }) 
         return <p className="text-muted-foreground">No data available for this table.</p>;
 
       case "comparison":
-        // This is a placeholder; you can implement the full comparison logic here.
         return <p className="text-muted-foreground">Comparison view is not yet implemented.</p>;
 
       case "text":
@@ -69,7 +72,6 @@ const WidgetCard: React.FC<WidgetCardProps> = ({ widget, onRemove, onCompare }) 
   };
 
   return (
-    // Card component uses theme defaults
     <Card>
       <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
         <CardTitle className="text-sm font-medium">{widget.title}</CardTitle>
@@ -105,7 +107,7 @@ const WidgetCard: React.FC<WidgetCardProps> = ({ widget, onRemove, onCompare }) 
 };
 
 
-// --- Merged PersistentCanvas (from version 1) using the new WidgetCard ---
+// --- PersistentCanvas Component ---
 interface PersistentCanvasProps {
   widgets: CanvasWidget[];
   onWidgetRemove: (widgetId: string) => void;
@@ -128,7 +130,7 @@ const PersistentCanvas: React.FC<PersistentCanvasProps> = ({
                 onRemove={onWidgetRemove}
                 onCompare={onWidgetCompare}
               />
-          )).reverse() /* Show newest widgets at the top */}
+          )).reverse()}
         </div>
       ) : (
         <div className="text-center text-muted-foreground pt-16 w-full">

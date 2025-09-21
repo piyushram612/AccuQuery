@@ -6,12 +6,28 @@ export interface CanvasWidget {
   title: string;
   data: any;
   query: string;
-  timestamp: string;
-  position: { x: number; y: number };
-  size: { width: number; height: number };
+  timestamp?: string;
+  position?: { x: number; y: number };
+  size?: { width: number; height: number };
   isMinimized?: boolean;
   isExpanded?: boolean;
   relatedWidgets?: string[];
+}
+
+// Definition for chart data structures, used by ChartDisplay
+export interface ChartData {
+  type: 'bar' | 'line' | 'pie' | 'doughnut';
+  data: {
+    labels: string[];
+    datasets: Array<{
+      label: string;
+      data: number[];
+      backgroundColor?: string | string[];
+      borderColor?: string | string[];
+      [key: string]: any;
+    }>;
+  };
+  options?: any;
 }
 
 export type CanvasLayout = 'grid' | 'freeform' | 'split' | 'dashboard';
