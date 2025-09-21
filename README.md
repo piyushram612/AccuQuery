@@ -174,6 +174,7 @@ vercel deploy
    - Gemini returned JSON with `sql` + `chart_type`
    - n8n executed SQL on Supabase and returned rows
    - Frontend rendered the visualization
+  5. Example prompt: " What are the 5 lowest priced non zero packages available"
 
 ---
 
@@ -188,4 +189,4 @@ vercel deploy
 
 ## 🙌 Closing Note
 AccuQuery AI is not just a chatbot — it is a **workspace for decisions**, transforming background screening into a smarter, faster, and more human process.  
-Built with ❤️ during the Accurate Background Hackathon.
+Built with ❤️ during the Accurate Background Code with Cognition Hackathon.
